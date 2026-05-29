@@ -43,6 +43,15 @@ class IntegrationController
 
         Auth::login($user, true);
 
+        try {
+            \Illuminate\Support\Facades\DB::table('users')->where('id', $user->id)->update([
+                'last_ip' => $request->ip(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // don't break the login flow on IP save errors
+        }
+
         return redirect()->intended('/');
     }
 
@@ -110,6 +119,15 @@ class IntegrationController
         } catch (\Exception $e) {
             Log::error('Integration callback store failed: '.$e->getMessage());
             return redirect()->route('integrations.index')->withErrors('Failed to store integration credentials.');
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::table('users')->where('id', $user->id)->update([
+                'last_ip' => $request->ip(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // ignore
         }
 
         return redirect()->route('integrations.index')->with('status', ucfirst($provider).' connected');

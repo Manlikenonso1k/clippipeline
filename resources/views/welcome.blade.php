@@ -165,6 +165,13 @@
             </div>
         @endif
 
+        @if (Auth::check() && data_get(Auth::user(), 'settings.billing.flagged'))
+            <div class="glass-panel rounded-xl p-4 text-sm border-primary-container/30 text-on-surface max-w-2xl mx-auto w-full">
+                It looks like your account was flagged for exceeding the free plan limits. Please consider upgrading to <strong>Creator Pro</strong> to continue automatic posting.
+                <a class="ml-3 underline font-semibold" href="{{ route('billing.select', ['plan' => 'creator_pro']) }}">Upgrade to Creator Pro</a>
+            </div>
+        @endif
+
         <section class="flex flex-col items-center text-center max-w-4xl mx-auto pt-xl">
             <h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface mb-6 tracking-tight">
                 One upload.<br />
