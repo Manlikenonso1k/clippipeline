@@ -244,12 +244,26 @@
                         <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-primary-container">check</span> Priority queue</li>
                         <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-primary-container">check</span> Advanced analytics</li>
                     </ul>
-                    <form class="mt-8" method="POST" action="{{ route('billing.select', ['plan' => 'creator_pro']) }}">
-                        @csrf
-                        <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-white bg-primary-container hover:bg-primary transition-colors" type="submit">
-                            Upgrade to Pro
-                        </button>
-                    </form>
+                    <div class="mt-8 grid grid-cols-1 gap-2 w-full">
+                        <form method="POST" action="{{ route('billing.checkout', ['plan' => 'creator_pro', 'gateway' => 'paystack']) }}">
+                            @csrf
+                            <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-white bg-primary-container hover:bg-primary transition-colors" type="submit">
+                                Pay with Paystack
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('billing.checkout', ['plan' => 'creator_pro', 'gateway' => 'flutterwave']) }}">
+                            @csrf
+                            <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/10 border border-white/20 hover:bg-white/15 transition-colors" type="submit">
+                                Pay with Flutterwave
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('billing.checkout', ['plan' => 'creator_pro', 'gateway' => 'tgipay']) }}">
+                            @csrf
+                            <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-surface-container-highest border border-white/20 hover:bg-surface-bright transition-colors" type="submit">
+                                Pay with TgiPay
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="glass-panel rounded-[16px] p-[32px] flex flex-col h-[90%] md:h-[400px]">
@@ -260,12 +274,26 @@
                         <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-on-surface">check</span> Permanent access</li>
                         <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-on-surface">check</span> All future updates</li>
                     </ul>
-                    <form class="mt-8" method="POST" action="{{ route('billing.select', ['plan' => 'lifetime']) }}">
-                        @csrf
-                        <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-surface-container-highest border border-white/20 hover:bg-surface-bright transition-colors shadow-inner" type="submit">
-                            Claim Lifetime Access
-                        </button>
-                    </form>
+                    <div class="mt-8 grid grid-cols-1 gap-2 w-full">
+                        <form method="POST" action="{{ route('billing.checkout', ['plan' => 'lifetime', 'gateway' => 'paystack']) }}">
+                            @csrf
+                            <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-surface-container-highest border border-white/20 hover:bg-surface-bright transition-colors shadow-inner" type="submit">
+                                Lifetime via Paystack
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('billing.checkout', ['plan' => 'lifetime', 'gateway' => 'flutterwave']) }}">
+                            @csrf
+                            <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/10 border border-white/20 hover:bg-white/15 transition-colors" type="submit">
+                                Lifetime via Flutterwave
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('billing.checkout', ['plan' => 'lifetime', 'gateway' => 'tgipay']) }}">
+                            @csrf
+                            <button class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-surface-container border border-white/20 hover:bg-surface-container-high transition-colors" type="submit">
+                                Lifetime via TgiPay
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </section>

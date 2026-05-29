@@ -9,6 +9,9 @@ Route::get('/', function () {
 });
 
 Route::post('/billing/plan/{plan}', [BillingController::class, 'select'])->name('billing.select');
+Route::post('/billing/checkout/{plan}/{gateway}', [BillingController::class, 'checkout'])->name('billing.checkout');
+Route::get('/billing/callback/{gateway}', [BillingController::class, 'callback'])->name('billing.callback');
+Route::post('/billing/webhook/{gateway}', [BillingController::class, 'webhook'])->name('billing.webhook');
 
 // Authentication (Google) - main login
 Route::get('/auth/redirect/{provider}', [IntegrationController::class, 'redirectToProvider'])->name('auth.redirect');

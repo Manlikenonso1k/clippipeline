@@ -130,4 +130,24 @@ Security
 - Store OAuth refresh tokens in social_accounts table. Ensure DB is access-controlled and backups are encrypted.
 - Do not commit .env or secrets to version control.
 
+Billing Webhooks (TgiPay)
+
+- Route: POST /billing/webhook/tgipay
+- Signature validation:
+  - Header name is configurable via TGIPAY_SIGNATURE_HEADER
+  - HMAC algorithm is configurable via TGIPAY_SIGNATURE_ALGO
+  - Signature secret is TGIPAY_SECRET_KEY
+- Payload mapping is configurable for production payload differences:
+  - TGIPAY_WEBHOOK_EVENT_KEY (default: event)
+  - TGIPAY_WEBHOOK_STATUS_KEY (default: data.status)
+  - TGIPAY_WEBHOOK_REFERENCE_KEY (default: data.reference)
+  - TGIPAY_WEBHOOK_TRANSACTION_ID_KEY (default: data.id)
+- Event -> internal state mapping:
+  - TGIPAY_SUCCESS_EVENTS and TGIPAY_SUCCESS_STATUSES => active
+  - TGIPAY_FAILED_EVENTS and TGIPAY_FAILED_STATUSES => failed
+  - TGIPAY_PENDING_EVENTS and TGIPAY_PENDING_STATUSES => pending_checkout
+  - Unknown events/statuses are acknowledged and ignored
+- Optional strict verify step:
+  - TGIPAY_ENFORCE_VERIFY_ON_SUCCESS=true verifies success events against TGIPAY_VERIFY_PATH before activation.
+
 If you want, I can add a CONTRIBUTING or DEPLOYMENT file with supervisor / systemd examples and CI steps.
