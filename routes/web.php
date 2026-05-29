@@ -1,11 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\IntegrationController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::post('/billing/plan/{plan}', [BillingController::class, 'select'])->name('billing.select');
 
 // Authentication (Google) - main login
 Route::get('/auth/redirect/{provider}', [IntegrationController::class, 'redirectToProvider'])->name('auth.redirect');
