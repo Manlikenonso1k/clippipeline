@@ -58,7 +58,7 @@ class IntegrationController
     // Redirect to authorize integrations (youtube/google or instagram/facebook)
     public function redirectIntegration(Request $request, $provider)
     {
-        if (!in_array($provider, ['youtube', 'instagram'])) {
+        if (!in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
             abort(404);
         }
 
@@ -79,17 +79,31 @@ class IntegrationController
                 ->redirect();
         }
 
+        if ($provider === 'tiktok') {
+            // TikTok OAuth (via SocialiteProviders/tiktok)
+            return Socialite::driver('tiktok')
+                ->stateless()
+                ->redirect();
+        }
+
         abort(400);
     }
 
     // Handle callback and store tokens in social_accounts table
     public function handleIntegrationCallback(Request $request, $provider)
     {
-        if (!in_array($provider, ['youtube', 'instagram'])) {
+        if (!in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
             abort(404);
         }
 
-        $driver = $provider === 'youtube' ? 'google' : 'facebook';
+        $driver = null;
+        if ($provider === 'youtube') {
+            $driver = 'google';
+        } elseif ($provider === 'instagram') {
+            $driver = 'facebook';
+        } elseif ($provider === 'tiktok') {
+            $driver = 'tiktok';
+        }
 
         $socialUser = Socialite::driver($driver)->stateless()->user();
 
