@@ -8,6 +8,12 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Simple login entry so `auth` middleware can redirect unauthenticated users.
+// Redirects to the Google OAuth flow used as the main login provider.
+Route::get('/login', function () {
+    return redirect()->route('auth.redirect', ['provider' => 'google']);
+})->name('login');
+
 Route::post('/billing/plan/{plan}', [BillingController::class, 'select'])->name('billing.select');
 Route::post('/billing/checkout/{plan}/{gateway}', [BillingController::class, 'checkout'])->name('billing.checkout');
 Route::get('/billing/callback/{gateway}', [BillingController::class, 'callback'])->name('billing.callback');
