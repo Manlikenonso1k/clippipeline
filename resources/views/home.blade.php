@@ -34,9 +34,15 @@
                                 <span class="font-label-sm text-label-sm text-on-surface-variant">Sync Latency</span>
                             </div>
                         </div>
-                        <button class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
-                            Explore Unified Dashboard
-                        </button>
+                        @guest
+                            <a href="{{ route('auth.google') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Sign in to Connect Accounts
+                            </a>
+                        @else
+                            <a href="{{ route('integrations.index') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Open Integrations
+                            </a>
+                        @endguest
                     </div>
                     <div class="w-full md:w-[60%] relative">
                         <div class="absolute inset-0 bg-gradient-to-r from-background to-transparent z-10 hidden md:block"></div>
@@ -67,9 +73,15 @@
                                 <span class="font-label-sm text-label-sm text-on-surface-variant">Bandwidth Pipe</span>
                             </div>
                         </div>
-                        <button class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
-                            Speed Up My Distribution
-                        </button>
+                        @guest
+                            <a href="{{ route('auth.google') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Sign in to Connect Accounts
+                            </a>
+                        @else
+                            <a href="{{ route('integrations.index') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Open Integrations
+                            </a>
+                        @endguest
                     </div>
                     <div class="w-full md:w-[60%] relative">
                         <div class="absolute inset-0 bg-gradient-to-r from-background to-transparent z-10 hidden md:block"></div>
@@ -100,9 +112,15 @@
                                 <span class="font-label-sm text-label-sm text-on-surface-variant">API Endpoints</span>
                             </div>
                         </div>
-                        <button class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
-                            Deploy Clean Content
-                        </button>
+                        @guest
+                            <a href="{{ route('auth.google') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Sign in to Connect Accounts
+                            </a>
+                        @else
+                            <a href="{{ route('integrations.index') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Open Integrations
+                            </a>
+                        @endguest
                     </div>
                     <div class="w-full md:w-[60%] relative">
                         <div class="absolute inset-0 bg-gradient-to-r from-background to-transparent z-10 hidden md:block"></div>
@@ -133,9 +151,15 @@
                                 <span class="font-label-sm text-label-sm text-on-surface-variant">Format Adaptation</span>
                             </div>
                         </div>
-                        <button class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
-                            Scale My Footprint
-                        </button>
+                        @guest
+                            <a href="{{ route('auth.google') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Sign in to Connect Accounts
+                            </a>
+                        @else
+                            <a href="{{ route('integrations.index') }}" class="mt-8 bg-primary-container text-white px-8 py-4 rounded-full font-label-md text-label-md w-fit hover:bg-primary transition-colors animate-slide-up opacity-0" style="animation-delay: 0.2s;">
+                                Open Integrations
+                            </a>
+                        @endguest
                     </div>
                     <div class="w-full md:w-[60%] relative">
                         <div class="absolute inset-0 bg-gradient-to-r from-background to-transparent z-10 hidden md:block"></div>
@@ -149,6 +173,33 @@
         <button class="carousel-arrow right absolute right-4 top-1/2 -translate-y-1/2" aria-label="Next slide">&gt;</button>
 
         <div class="carousel-dots absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2"></div>
+    </section>
+
+    <section class="pt-xl" id="connect">
+        <div class="glass-panel rounded-[16px] p-[24px] md:p-[32px] flex flex-col gap-4">
+            <h2 class="font-headline-md text-headline-md text-on-surface">Connect your accounts in 3 steps</h2>
+            @guest
+                <ol class="text-on-surface-variant font-body-md flex flex-col gap-2">
+                    <li>1. Sign in with Google.</li>
+                    <li>2. Open Integrations.</li>
+                    <li>3. Connect TikTok, Instagram, and YouTube.</li>
+                </ol>
+                <a href="{{ route('auth.google') }}" class="mt-2 w-fit px-6 py-3 rounded-full font-label-md text-label-md text-white bg-primary-container hover:bg-primary transition-colors">
+                    Sign in with Google
+                </a>
+            @else
+                <ol class="text-on-surface-variant font-body-md flex flex-col gap-2">
+                    <li>1. Connect TikTok.</li>
+                    <li>2. Connect Instagram.</li>
+                    <li>3. Connect YouTube.</li>
+                </ol>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('auth.tiktok') }}" class="px-4 py-2 rounded-full bg-white/5 border border-white/10">Connect TikTok</a>
+                    <a href="{{ route('auth.meta') }}" class="px-4 py-2 rounded-full bg-white/5 border border-white/10">Connect Instagram</a>
+                    <a href="{{ route('auth.youtube') }}" class="px-4 py-2 rounded-full bg-white/5 border border-white/10">Connect YouTube</a>
+                </div>
+            @endguest
+        </div>
     </section>
 
     <section class="pt-xl" id="features">
@@ -193,9 +244,12 @@
                     <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-on-surface">check</span> 10 posts free</li>
                     <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-on-surface">check</span> Standard speed</li>
                 </ul>
-                <a class="mt-8 w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/5 border border-white/10 hover:bg-white/10 transition-colors" href="#">
-                    Get Started
-                </a>
+                <form method="POST" action="{{ route('billing.select', ['plan' => 'starter']) }}" class="mt-8">
+                    @csrf
+                    <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                        Get Started
+                    </button>
+                </form>
             </div>
             <div class="glass-panel rounded-[16px] p-[32px] flex flex-col relative border-primary-container/50 bg-primary-container/5 shadow-[0_0_30px_rgba(255,107,53,0.1)] h-full md:h-[450px] transform md:-translate-y-4">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary-container text-white px-3 py-1 rounded-full font-label-sm text-[10px] uppercase tracking-wider">
@@ -208,9 +262,26 @@
                     <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-primary-container">check</span> Priority queue</li>
                     <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-primary-container">check</span> Advanced analytics</li>
                 </ul>
-                <a class="mt-8 w-full py-3 rounded-full text-center font-label-md text-label-md text-white bg-primary-container hover:bg-primary transition-colors" href="#">
-                    Upgrade to Pro
-                </a>
+                <div class="mt-8 flex flex-col gap-2">
+                    <form method="POST" action="{{ route('billing.checkout', ['plan' => 'creator_pro', 'gateway' => 'paystack']) }}">
+                        @csrf
+                        <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-white bg-primary-container hover:bg-primary transition-colors">
+                            Pay with Paystack
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('billing.checkout', ['plan' => 'creator_pro', 'gateway' => 'flutterwave']) }}">
+                        @csrf
+                        <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                            Pay with Flutterwave
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('billing.checkout', ['plan' => 'creator_pro', 'gateway' => 'tgipay']) }}">
+                        @csrf
+                        <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                            Pay with TgiPay
+                        </button>
+                    </form>
+                </div>
             </div>
             <div class="glass-panel rounded-[16px] p-[32px] flex flex-col h-[90%] md:h-[400px]">
                 <h3 class="font-headline-md text-headline-md text-on-surface mb-2">Lifetime Access</h3>
@@ -220,9 +291,26 @@
                     <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-on-surface">check</span> Permanent access</li>
                     <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-on-surface">check</span> All future updates</li>
                 </ul>
-                <a class="mt-8 w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-surface-container-highest border border-white/20 hover:bg-surface-bright transition-colors shadow-inner" href="#">
-                    Claim Lifetime Access
-                </a>
+                <div class="mt-8 flex flex-col gap-2">
+                    <form method="POST" action="{{ route('billing.checkout', ['plan' => 'lifetime', 'gateway' => 'paystack']) }}">
+                        @csrf
+                        <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-surface-container-highest border border-white/20 hover:bg-surface-bright transition-colors shadow-inner">
+                            Pay with Paystack
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('billing.checkout', ['plan' => 'lifetime', 'gateway' => 'flutterwave']) }}">
+                        @csrf
+                        <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                            Pay with Flutterwave
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('billing.checkout', ['plan' => 'lifetime', 'gateway' => 'tgipay']) }}">
+                        @csrf
+                        <button type="submit" class="w-full py-3 rounded-full text-center font-label-md text-label-md text-on-surface bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                            Pay with TgiPay
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </section>
