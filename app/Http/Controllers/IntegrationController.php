@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use App\Models\User;
 
 class IntegrationController
@@ -38,6 +40,8 @@ class IntegrationController
                 'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Google User',
                 'email' => $socialUser->getEmail(),
                 'avatar' => $socialUser->getAvatar(),
+                // ensure non-null password for DB constraints when creating via OAuth
+                'password' => Hash::make(Str::random(24)),
             ]
         );
 

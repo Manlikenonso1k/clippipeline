@@ -11,7 +11,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register SocialiteProviders manager so custom drivers (e.g., tiktok) are available
+        $this->app->register(\SocialiteProviders\Manager\ServiceProvider::class);
     }
 
     /**

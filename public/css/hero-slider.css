@@ -1,0 +1,32 @@
+/* Slider: transform-based horizontal track */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.glass-panel:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+
+/* Slide-up reveal animation for inner elements */
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+/* Track layout */
+.carousel-container { position: relative; overflow: hidden; }
+.carousel-track { display: flex; transition: transform 0.5s ease-in-out; will-change: transform; }
+.carousel-slide { min-width: 100%; box-sizing: border-box; }
+
+.cta-slide-up { display:inline-flex; align-items:center; justify-content:center; padding:0.75rem 2rem; border-radius:9999px; font-weight:600; background:linear-gradient(90deg,#ff6b35 0%,#27496c 100%); color:#fff; box-shadow:0 6px 24px rgba(255,107,53,0.18); }
+.status-success { display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.75rem; border-radius:9999px; background:rgba(34,197,94,0.12); color:#22c55e; font-weight:600; border:1px solid rgba(34,197,94,0.08); }
+
+/* Arrows */
+.carousel-arrow { position: absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.04); backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.06); color:var(--tw-text-opacity,#fff); width:44px; height:44px; display:flex; align-items:center; justify-content:center; border-radius:9999px; cursor:pointer; }
+.carousel-arrow:hover { transform:translateY(-50%) scale(1.05); }
+.carousel-arrow.left { left:1rem; }
+.carousel-arrow.right { right:1rem; }
+
+/* Dots */
+.carousel-dots { display:flex; gap:0.5rem; }
+.carousel-dots button { width:10px; height:10px; border-radius:9999px; background:rgba(255,255,255,0.12); border:none; cursor:pointer; }
+.carousel-dots button.active { background:linear-gradient(90deg,#ff6b35,#27496c); box-shadow:0 4px 12px rgba(0,0,0,0.25); }
+

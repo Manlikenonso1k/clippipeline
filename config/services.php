@@ -47,6 +47,12 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT'),
     ],
 
+    'tiktok' => [
+        'client_id' => env('TIKTOK_CLIENT_ID'),
+        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+        'redirect' => env('TIKTOK_REDIRECT'),
+    ],
+
     'tiktok_scraper' => [
         'url' => env('TIKTOK_SCRAPER_URL'),
         'key' => env('TIKTOK_SCRAPER_KEY'),
