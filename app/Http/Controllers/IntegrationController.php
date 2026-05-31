@@ -56,7 +56,7 @@ class IntegrationController
             // don't break the login flow on IP save errors
         }
 
-        return redirect()->intended('/');
+        return redirect()->intended('/admin');
     }
 
     // Redirect to authorize integrations (youtube/google or instagram/facebook)
