@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/main-content.css') }}">
     <link rel="stylesheet" href="{{ asset('css/hero-slider.css') }}">
     @stack('styles')
     <style>html,body{background:var(--tw-bg-opacity, #111415)}</style>

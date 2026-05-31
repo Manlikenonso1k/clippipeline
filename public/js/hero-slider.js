@@ -11,13 +11,15 @@
 
     function update() {
         track.style.transform = `translateX(-${idx * 100}%)`;
-        // animate inner elements
+        // reset slide-up animations for the active slide
         slides.forEach((s, i) => {
-            const elems = s.querySelectorAll('[data-animate="slide-up"]');
+            const elems = s.querySelectorAll('.animate-slide-up');
             if (i === idx) {
-                elems.forEach(el => el.classList.add('animate-slide-up'));
-            } else {
-                elems.forEach(el => el.classList.remove('animate-slide-up'));
+                elems.forEach(el => {
+                    el.style.animation = 'none';
+                    void el.offsetHeight;
+                    el.style.animation = '';
+                });
             }
         });
         // update dots
