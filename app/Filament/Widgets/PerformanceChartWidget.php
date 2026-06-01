@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class PerformanceChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Performance Over 30 Days';
+    protected ?string $heading = 'Performance Over 30 Days';
     protected static ?int $sort = 2;
 
     protected function getData(): array

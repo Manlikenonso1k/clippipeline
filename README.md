@@ -151,3 +151,30 @@ Billing Webhooks (TgiPay)
   - TGIPAY_ENFORCE_VERIFY_ON_SUCCESS=true verifies success events against TGIPAY_VERIFY_PATH before activation.
 
 If you want, I can add a CONTRIBUTING or DEPLOYMENT file with supervisor / systemd examples and CI steps.
+
+## Local setup performed (by agent on 2026-06-01)
+
+- Dependencies installed via `composer install` and autoload generated.
+- Created `database/database.sqlite` and ran migrations + seeders (`php artisan migrate:fresh --seed --force`).
+- Fixed two dashboard widgets to avoid runtime SQL/migration conflicts:
+  - `app/Filament/Widgets/PerformanceChartWidget.php` (made `$heading` non-static)
+  - `app/Filament/Widgets/ViewsTrendChart.php` (aggregate by `DATE(recorded_at)`).
+- Dev server started: `php artisan serve --host=127.0.0.1 --port=8000` (available at http://127.0.0.1:8000).
+
+If you'd like, I can proceed to implement Google Socialite login and the Integrations UI next.
+ 
+## Integrations UI (local)
+
+- A simple Integrations page was added at `/integrations` which shows buttons to connect YouTube (Google), Instagram (Meta), and TikTok. The page is implemented in `resources/views/integrations/index.blade.php`.
+- OAuth flows are handled by `app/Http/Controllers/IntegrationController.php`. After authorization tokens are received they are stored in the `social_accounts` table.
+
+To try it locally:
+
+```bash
+# 1. Login (uses Google OAuth for main app login):
+php artisan serve --host=127.0.0.1 --port=8000
+# visit http://127.0.0.1:8000/login to sign in via Google
+
+# 2. Visit the integrations page (after login):
+# http://127.0.0.1:8000/integrations
+```

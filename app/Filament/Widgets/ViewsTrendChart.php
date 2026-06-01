@@ -29,10 +29,10 @@ class ViewsTrendChart extends ChartWidget
         $rows = DB::table('post_analytics')
             ->join('posts', 'posts.id', '=', 'post_analytics.post_id')
             ->where('posts.user_id', $userId)
-            ->where('date', '>=', $start->toDateString())
-            ->selectRaw('date, SUM(views) as views')
-            ->groupBy('date')
-            ->orderBy('date')
+            ->whereDate('post_analytics.recorded_at', '>=', $start->toDateString())
+            ->selectRaw('DATE(post_analytics.recorded_at) as date, SUM(views) as views')
+            ->groupBy(DB::raw('DATE(post_analytics.recorded_at)'))
+            ->orderBy(DB::raw('DATE(post_analytics.recorded_at)'))
             ->get();
 
         $viewsByDate = $rows->pluck('views', 'date');
