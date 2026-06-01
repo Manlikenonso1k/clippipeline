@@ -14,5 +14,5 @@ class ConnectAccounts extends Page
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-link';
 
     protected static ?string $navigationLabel = 'Platform Integrations';
-    protected static string $view = 'filament.pages.connect-accounts';
+    protected string $view = 'filament.pages.connect-accounts';
 }
