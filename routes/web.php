@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\SocialAuthController;
+use App\Filament\Pages\ConnectAccounts;
 
 Route::get('/', function () {
     return view('home');
@@ -34,7 +35,7 @@ Route::get('/auth/youtube', function () { return redirect()->route('integrations
 
 // Integrations (connect third-party APIs)
 Route::middleware(['auth'])->group(function () {
-    Route::get('/integrations', function () { return view('filament.pages.connect-accounts'); })->name('integrations.index');
+    Route::get('/integrations', function () { return redirect()->to(ConnectAccounts::getUrl()); })->name('integrations.index');
     Route::get('/integrations/redirect/{provider}', [SocialAuthController::class, 'redirectIntegration'])->name('integrations.redirect');
     Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'handleIntegrationCallback'])->name('integrations.callback');
     Route::post('/integrations/disconnect/{provider}', [SocialAuthController::class, 'disconnect'])->name('integrations.disconnect');

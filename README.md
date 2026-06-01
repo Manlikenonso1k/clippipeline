@@ -165,8 +165,9 @@ If you'd like, I can proceed to implement Google Socialite login and the Integra
  
 ## Integrations UI (local)
 
-- A simple Integrations page was added at `/integrations` which shows buttons to connect YouTube (Google), Instagram (Meta), and TikTok. The page is implemented in `resources/views/integrations/index.blade.php`.
-- OAuth flows are handled by `app/Http/Controllers/IntegrationController.php`. After authorization tokens are received they are stored in the `social_accounts` table.
+- A simple Integrations page is available at `/integrations` which shows buttons to connect YouTube (Google), Instagram (Meta), and TikTok. The Integrations UI has been migrated into a native Filament Page: `app/Filament/Pages/ConnectAccounts.php` with view `resources/views/filament/pages/connect-accounts.blade.php`.
+- The route `/integrations` now redirects to the Filament Page URL so the page is rendered through Filament's pipeline (avoids view errors such as "Using $this when not in object context").
+- OAuth flows are handled by `app/Http/Controllers/SocialAuthController.php`. After authorization tokens are received they are stored in the `social_accounts` table.
 
 To try it locally:
 
