@@ -1,116 +1,170 @@
-<div class="clippy-dashboard">
+<div class="clippy-dashboard clippy-dashboard--desktop">
     @php
         $performanceBars = $this->getPerformanceBars();
         $recentUploads = $this->getRecentTiktokUploads();
+        $axisLabels = $this->getPerformanceAxisLabels();
     @endphp
 
-    <section class="clippy-topbar">
-        <button type="button" class="clippy-icon-button" aria-label="Open menu">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
+    @include('filament.partials.dashboard-sidebar')
 
-        <div class="clippy-topbar__title">TikTok Insights</div>
+    <div class="clippy-dashboard__content">
+        <header class="clippy-topbar">
+            <div class="clippy-topbar__left">
+                <button type="button" class="clippy-icon-button clippy-icon-button--mobile" aria-label="Open menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
 
-        <button type="button" class="clippy-avatar-button" aria-label="Account">
-            <span>CL</span>
-        </button>
-    </section>
+                <div class="clippy-search">
+                    <span class="clippy-search__icon" aria-hidden="true">⌕</span>
+                    <input type="text" placeholder="Search..." />
+                </div>
+            </div>
 
-    <main class="clippy-shell">
-        <section class="clippy-card clippy-card--hero">
-            <div class="clippy-card__header">
+            <div class="clippy-topbar__actions">
+                <button type="button" class="clippy-topbar__icon" aria-label="Notifications">
+                    <span class="clippy-dot"></span>
+                    ⌁
+                </button>
+                <button type="button" class="clippy-topbar__icon" aria-label="Help">?</button>
+                <button type="button" class="clippy-new-post">+ New Post</button>
+                <button type="button" class="clippy-avatar-button" aria-label="Account">
+                    <span>CL</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="clippy-main">
+            <section class="clippy-page-header">
                 <div>
-                    <p class="clippy-label">Views</p>
-                </div>
-                <span class="clippy-chip clippy-chip--glow">Live</span>
-            </div>
-
-            <div class="clippy-hero-metric">
-                <h1>{{ $this->getTotalTiktokViews() }}</h1>
-                <p><span>↑</span> {{ $this->getWeeklyTiktokVelocity() }} this week</p>
-            </div>
-        </section>
-
-        <section class="clippy-grid clippy-grid--two">
-            <article class="clippy-card clippy-card--metric">
-                <div class="clippy-card__header">
-                    <p class="clippy-label">Growth</p>
-                </div>
-                <div class="clippy-metric-value">{{ $this->getFollowerGrowth() }}</div>
-                <p class="clippy-metric-caption">Followers</p>
-            </article>
-
-            <article class="clippy-card clippy-card--metric clippy-card--metric-alt">
-                <div class="clippy-card__header">
-                    <p class="clippy-label">Engagement Rate</p>
-                    <span class="clippy-chip">High</span>
-                </div>
-                <div class="clippy-metric-value">{{ $this->getEngagementRate() }}</div>
-                <div class="clippy-sparkline" aria-hidden="true">
-                    <span></span><span></span><span></span><span></span><span></span>
-                </div>
-            </article>
-        </section>
-
-        <section class="clippy-card clippy-performance">
-            <div class="clippy-card__header clippy-performance__header">
-                <div>
-                    <h2>Performance</h2>
-                </div>
-                <span class="clippy-label clippy-label--muted">30 Days</span>
-            </div>
-
-            <div class="clippy-bar-chart" aria-label="TikTok performance chart">
-                @foreach($performanceBars as $bar)
-                    <div class="clippy-bar-chart__bar-wrap">
-                        <div class="clippy-bar-chart__bar" style="height: {{ $bar }}%;"></div>
+                    <div class="clippy-kicker">
+                        <span class="clippy-kicker__icon" aria-hidden="true">▶</span>
+                        <span>TIKTOK INSIGHTS</span>
                     </div>
-                @endforeach
-            </div>
+                    <h2>{{ $this->getTiktokHandle() }}</h2>
+                </div>
 
-            <div class="clippy-bar-chart__axis">
-                <span>Oct 1</span>
-                <span>Oct 15</span>
-                <span>Oct 30</span>
-            </div>
-        </section>
+                <div class="clippy-live-pill">
+                    <span></span>
+                    Live Sync Active
+                </div>
+            </section>
 
-        <section class="clippy-section">
-            <div class="clippy-section__header">
-                <h2>Recent Uploads</h2>
-                <a href="{{ route('filament.admin.pages.dashboard') }}" class="clippy-link">View all</a>
-            </div>
+            <section class="clippy-stats-grid">
+                <article class="clippy-card clippy-card--hero">
+                    <div class="clippy-card__header">
+                        <p class="clippy-label">Total Views</p>
+                        <span class="clippy-card__icon">◉</span>
+                    </div>
+                    <div class="clippy-stat-value clippy-stat-value--xl">{{ $this->getTotalTiktokViews() }}</div>
+                    <div class="clippy-stat-meta">
+                        <span class="clippy-stat-badge clippy-stat-badge--orange">↑ {{ $this->getWeeklyTiktokVelocity() }}</span>
+                        <span class="clippy-stat-note">vs last 30 days</span>
+                    </div>
+                </article>
 
-            <div class="clippy-card clippy-list-card">
-                @foreach($recentUploads as $upload)
-                    <article class="clippy-upload-row">
-                        <div class="clippy-upload-thumb">
-                            @if(($upload['status'] ?? '') === 'Processing')
-                                <span class="clippy-upload-thumb__icon">↻</span>
-                            @else
-                                <span class="clippy-upload-thumb__duration">{{ $upload['duration'] }}</span>
-                            @endif
-                        </div>
+                <article class="clippy-card">
+                    <div class="clippy-card__header">
+                        <p class="clippy-label">Follower Growth</p>
+                        <span class="clippy-card__icon clippy-card__icon--blue">◔</span>
+                    </div>
+                    <div class="clippy-stat-value">{{ $this->getFollowerGrowth() }}</div>
+                    <p class="clippy-stat-note">Followers</p>
+                </article>
 
-                        <div class="clippy-upload-content">
-                            <h3>{{ $upload['title'] }}</h3>
-                            <p>
-                                <span>👁 {{ $upload['views'] }}</span>
-                                <span>♥ {{ $upload['likes'] }}</span>
-                            </p>
-                            @if(($upload['status'] ?? '') === 'Processing')
-                                <div class="clippy-progress">
-                                    <div class="clippy-progress__bar" style="width: {{ $upload['progress'] ?? 0 }}%;"></div>
+                <article class="clippy-card">
+                    <div class="clippy-card__header">
+                        <p class="clippy-label">Engagement Rate</p>
+                        <span class="clippy-stat-badge">High</span>
+                    </div>
+                    <div class="clippy-stat-value">{{ $this->getEngagementRate() }}</div>
+                    <div class="clippy-sparkline" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="clippy-panel">
+                <div class="clippy-panel__header">
+                    <div>
+                        <h3>Performance Over 30 Days</h3>
+                        <p>Daily view velocity and engagement spikes.</p>
+                    </div>
+                    <div class="clippy-panel__switcher">
+                        <button type="button">7D</button>
+                        <button type="button" class="is-active">30D</button>
+                        <button type="button">90D</button>
+                    </div>
+                </div>
+
+                <div class="clippy-chart">
+                    <div class="clippy-chart__axis clippy-chart__axis--y">
+                        <span>50k</span>
+                        <span>25k</span>
+                        <span>0</span>
+                    </div>
+
+                    <div class="clippy-chart__bars" aria-label="TikTok performance chart">
+                        @foreach($performanceBars as $bar)
+                            <div class="clippy-chart__bar-wrap">
+                                <div class="clippy-chart__bar" style="height: {{ $bar }}%;"></div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="clippy-chart__axis clippy-chart__axis--x">
+                        <span>{{ $axisLabels[0] }}</span>
+                        <span>{{ $axisLabels[1] }}</span>
+                        <span>{{ $axisLabels[2] }}</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="clippy-section">
+                <div class="clippy-section__header">
+                    <h3>Recent Uploads</h3>
+                    <a href="{{ route('filament.admin.pages.dashboard') }}">View All</a>
+                </div>
+
+                <div class="clippy-list">
+                    @forelse($recentUploads as $upload)
+                        <article class="clippy-upload-card">
+                            <div class="clippy-upload-thumb">
+                                @if(($upload['status'] ?? '') === 'Processing')
+                                    <span class="clippy-upload-thumb__status">↻</span>
+                                @else
+                                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=320&q=80" alt="Thumbnail" />
+                                    <span class="clippy-upload-thumb__duration">{{ $upload['duration'] }}</span>
+                                @endif
+                            </div>
+
+                            <div class="clippy-upload-content">
+                                <h4>{{ $upload['title'] }}</h4>
+                                <div class="clippy-upload-metrics">
+                                    <span>◔ {{ $upload['views'] }}</span>
+                                    <span>♥ {{ $upload['likes'] }}</span>
                                 </div>
-                            @endif
-                        </div>
-                    </article>
-                @endforeach
-            </div>
-        </section>
-    </main>
 
-    @include('filament.partials.dashboard-nav')
+                                @if(($upload['status'] ?? '') === 'Processing')
+                                    <div class="clippy-progress">
+                                        <div class="clippy-progress__bar" style="width: {{ $upload['progress'] ?? 0 }}%;"></div>
+                                    </div>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <article class="clippy-upload-card clippy-upload-card--empty">
+                            <div class="clippy-upload-content">
+                                <h4>No TikTok posts found yet</h4>
+                                <p>Seed the dashboard data again to populate this section.</p>
+                            </div>
+                        </article>
+                    @endforelse
+                </div>
+            </section>
+        </main>
+
+        @include('filament.partials.dashboard-nav')
+    </div>
 </div>
