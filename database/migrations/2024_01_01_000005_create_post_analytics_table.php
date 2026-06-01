@@ -15,6 +15,8 @@ return new class extends Migration
             $table->unsignedBigInteger('views')->default(0);
             $table->unsignedBigInteger('likes')->default(0);
             $table->unsignedBigInteger('comments')->default(0);
+            $table->unsignedBigInteger('shares')->default(0);
+            $table->unsignedInteger('watch_time')->default(0);
             $table->timestamp('recorded_at')->useCurrent();
             $table->timestamps();
             

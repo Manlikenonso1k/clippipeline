@@ -2,14 +2,23 @@
 
 namespace App\Models;
 
+use Database\Factories\PostFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Post extends Model
 {
+    /** @use HasFactory<PostFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'user_id',
+        'social_account_id',
+        'title',
+        'video_url',
+        'published_at',
         'tiktok_id',
         'caption',
         'download_path',
@@ -19,6 +28,7 @@ class Post extends Model
     ];
 
     protected $casts = [
+        'published_at' => 'datetime',
         'downloaded_at' => 'datetime',
         'meta' => 'array',
     ];
@@ -26,6 +36,11 @@ class Post extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function socialAccount(): BelongsTo
+    {
+        return $this->belongsTo(SocialAccount::class);
     }
 
     public function distributions(): HasMany

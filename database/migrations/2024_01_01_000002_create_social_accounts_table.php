@@ -12,12 +12,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->enum('provider', ['tiktok', 'youtube', 'instagram']);
+            $table->enum('platform_name', ['tiktok', 'youtube', 'instagram'])->default('tiktok');
+            $table->string('handle')->nullable();
+            $table->unsignedBigInteger('follower_count')->default(0);
             $table->text('access_token');
             $table->text('refresh_token')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
             
             $table->unique(['user_id', 'provider']);
+            $table->unique(['user_id', 'platform_name']);
         });
     }
 

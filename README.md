@@ -169,6 +169,17 @@ If you'd like, I can proceed to implement Google Socialite login and the Integra
 - The route `/integrations` now redirects to the Filament Page URL so the page is rendered through Filament's pipeline (avoids view errors such as "Using $this when not in object context").
 - OAuth flows are handled by `app/Http/Controllers/SocialAuthController.php`. After authorization tokens are received they are stored in the `social_accounts` table.
 
+## Dashboard Dummy Data
+
+- The database now includes a `DashboardDummyDataSeeder` that creates one demo user if needed, exactly three social accounts, 20-30 posts per account, and daily analytics from each post's publish date through today.
+- Run the full rebuild and seed with:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+- After seeding, the dashboard should have enough data to populate the cross-platform analytics charts.
+
 To try it locally:
 
 ```bash
