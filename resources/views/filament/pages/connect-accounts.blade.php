@@ -1,4 +1,4 @@
-@extends('filament::page')
+@extends('filament-panels::pages.page')
 
 @section('content')
 <div class="space-y-6">
