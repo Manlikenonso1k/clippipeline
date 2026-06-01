@@ -123,20 +123,16 @@ class IntegrationController
                     'provider' => $provider,
                 ],
                 [
-                    'provider_user_id' => $socialUser->getId(),
                     'access_token' => $socialUser->token ?? null,
                     'refresh_token' => $socialUser->refreshToken ?? null,
-                    'token_expires_at' => isset($socialUser->expiresIn) ? now()->addSeconds($socialUser->expiresIn) : null,
-                    'scopes' => isset($socialUser->user['scope']) ? $socialUser->user['scope'] : null,
-                    'meta' => json_encode($socialUser->user ?? []),
-                    'revoked' => false,
+                    'expires_at' => isset($socialUser->expiresIn) ? now()->addSeconds($socialUser->expiresIn) : null,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]
             );
         } catch (\Exception $e) {
             Log::error('Integration callback store failed: '.$e->getMessage());
-            return redirect()->route('integrations.index')->withErrors('Failed to store integration credentials.');
+            return redirect()->route('filament.admin.pages.connect-accounts')->withErrors('Failed to store integration credentials.');
         }
 
         try {
@@ -148,6 +144,6 @@ class IntegrationController
             // ignore
         }
 
-        return redirect()->route('integrations.index')->with('status', ucfirst($provider).' connected');
+        return redirect()->route('filament.admin.pages.connect-accounts')->with('status', ucfirst($provider).' connected');
     }
 }

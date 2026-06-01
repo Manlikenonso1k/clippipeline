@@ -44,6 +44,9 @@ class AdminPanelProvider extends PanelProvider
                 AnalyticsOverview::class,
                 ViewsTrendChart::class,
                 TopPostsTable::class,
+                \App\Filament\Widgets\StatsOverviewWidget::class,
+                \App\Filament\Widgets\PerformanceChartWidget::class,
+                \App\Filament\Widgets\PopularPostsWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
