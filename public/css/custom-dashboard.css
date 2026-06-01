@@ -1,0 +1,501 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap');
+
+:root {
+    --clippy-bg: #0a0a0a;
+    --clippy-surface: rgba(28, 28, 30, 0.82);
+    --clippy-surface-2: rgba(32, 31, 31, 0.9);
+    --clippy-surface-3: rgba(42, 42, 42, 0.88);
+    --clippy-border: rgba(255, 255, 255, 0.08);
+    --clippy-text: #e5e2e1;
+    --clippy-text-muted: rgba(229, 226, 225, 0.72);
+    --clippy-orange: #ff5f1f;
+    --clippy-orange-soft: rgba(255, 95, 31, 0.18);
+    --clippy-blue: #00a3e0;
+    --clippy-blue-soft: rgba(0, 163, 224, 0.18);
+    --clippy-radius-xl: 2rem;
+    --clippy-radius-lg: 1.5rem;
+    --clippy-radius-md: 1rem;
+    --clippy-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.filament-panel,
+.filament-panels-layout,
+.filament-panels-page {
+    background: radial-gradient(circle at top, rgba(255, 95, 31, 0.09), transparent 35%),
+        linear-gradient(180deg, #111 0%, var(--clippy-bg) 100%);
+}
+
+.clippy-dashboard {
+    min-height: 100vh;
+    color: var(--clippy-text);
+    background:
+        radial-gradient(circle at 15% 0%, rgba(255, 95, 31, 0.12), transparent 24%),
+        radial-gradient(circle at 85% 12%, rgba(0, 163, 224, 0.12), transparent 20%),
+        linear-gradient(180deg, #121212 0%, #0a0a0a 100%);
+    font-family: 'Inter', sans-serif;
+    padding: 0 0 7.5rem;
+}
+
+.clippy-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.15rem 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(10, 10, 10, 0.72);
+}
+
+.clippy-topbar__title {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #f6c0ad;
+}
+
+.clippy-icon-button,
+.clippy-avatar-button {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 181, 156, 0.35);
+    background: rgba(28, 28, 30, 0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #f2bcab;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.clippy-icon-button span {
+    display: block;
+    width: 1.1rem;
+    height: 2px;
+    background: currentColor;
+    border-radius: 9999px;
+    margin: 0.12rem 0;
+}
+
+.clippy-icon-button {
+    flex-direction: column;
+    gap: 0.14rem;
+    padding: 0;
+}
+
+.clippy-avatar-button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+}
+
+.clippy-shell {
+    padding: 1rem 1.25rem 0;
+}
+
+.clippy-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.clippy-grid--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clippy-card,
+.clippy-list-card,
+.clippy-performance {
+    position: relative;
+    border-radius: var(--clippy-radius-xl);
+    border: 1px solid var(--clippy-border);
+    background: linear-gradient(180deg, rgba(42, 42, 42, 0.82), rgba(22, 22, 22, 0.92));
+    box-shadow: var(--clippy-shadow);
+    backdrop-filter: blur(24px);
+    overflow: hidden;
+}
+
+.clippy-card::after,
+.clippy-list-card::after,
+.clippy-performance::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.clippy-card--hero {
+    padding: 1.1rem 1.1rem 1rem;
+    background: linear-gradient(135deg, rgba(255, 95, 31, 0.12), rgba(28, 28, 30, 0.95));
+}
+
+.clippy-card--metric {
+    min-height: 12.5rem;
+    padding: 1rem;
+}
+
+.clippy-card--metric-alt {
+    background: linear-gradient(135deg, rgba(255, 95, 31, 0.14), rgba(28, 28, 30, 0.94));
+}
+
+.clippy-card__header,
+.clippy-section__header,
+.clippy-performance__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.clippy-label,
+.clippy-link,
+.clippy-bottom-nav__label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.clippy-label {
+    color: #e0beb0;
+}
+
+.clippy-label--muted {
+    color: rgba(229, 226, 225, 0.7);
+}
+
+.clippy-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.35rem 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: #ffcca4;
+    background: rgba(255, 95, 31, 0.14);
+    border: 1px solid rgba(255, 95, 31, 0.28);
+}
+
+.clippy-chip--glow {
+    box-shadow: 0 0 24px rgba(255, 95, 31, 0.18);
+}
+
+.clippy-hero-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding-top: 1.5rem;
+}
+
+.clippy-hero-metric h1 {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(3rem, 10vw, 4rem);
+    line-height: 0.95;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    color: #ffffff;
+}
+
+.clippy-hero-metric p {
+    margin: 0;
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    color: #cfe6f4;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+}
+
+.clippy-metric-value {
+    margin-top: 2rem;
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(2.1rem, 5vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: #fff;
+}
+
+.clippy-metric-caption {
+    margin: 0.3rem 0 0;
+    color: var(--clippy-text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+}
+
+.clippy-sparkline {
+    margin-top: 1.25rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.4rem;
+    min-height: 2.5rem;
+}
+
+.clippy-sparkline span {
+    width: 0.32rem;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, rgba(255, 95, 31, 1), rgba(255, 95, 31, 0.2));
+    box-shadow: 0 0 18px rgba(255, 95, 31, 0.28);
+}
+
+.clippy-sparkline span:nth-child(1) { height: 28%; }
+.clippy-sparkline span:nth-child(2) { height: 44%; }
+.clippy-sparkline span:nth-child(3) { height: 36%; }
+.clippy-sparkline span:nth-child(4) { height: 74%; }
+.clippy-sparkline span:nth-child(5) { height: 54%; }
+
+.clippy-performance {
+    margin-top: 1.1rem;
+    padding: 1.2rem 1.1rem 1rem;
+}
+
+.clippy-performance h2,
+.clippy-section h2 {
+    margin: 0;
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: #fff;
+}
+
+.clippy-bar-chart {
+    margin-top: 1.3rem;
+    min-height: 16rem;
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    align-items: end;
+    gap: 0.55rem;
+    padding: 0.8rem 0.15rem 0;
+    background: linear-gradient(180deg, rgba(255, 95, 31, 0.08), transparent 72%);
+    border-radius: 1.4rem;
+}
+
+.clippy-bar-chart__bar-wrap {
+    height: 100%;
+    display: flex;
+    align-items: end;
+    justify-content: center;
+}
+
+.clippy-bar-chart__bar {
+    width: 100%;
+    min-height: 12%;
+    border-radius: 0.8rem 0.8rem 0 0;
+    background: linear-gradient(180deg, rgba(255, 181, 156, 0.95), rgba(255, 95, 31, 0.24));
+    box-shadow: 0 0 20px rgba(255, 95, 31, 0.18);
+}
+
+.clippy-bar-chart__axis {
+    margin-top: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: rgba(229, 226, 225, 0.62);
+}
+
+.clippy-section {
+    margin-top: 2.25rem;
+}
+
+.clippy-section__header {
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.clippy-link {
+    color: #f4b094;
+    text-decoration: none;
+}
+
+.clippy-list-card {
+    padding: 0;
+}
+
+.clippy-upload-row {
+    display: grid;
+    grid-template-columns: 5.2rem minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.9rem 0.95rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.clippy-upload-row:first-child {
+    border-top: 0;
+}
+
+.clippy-upload-thumb {
+    display: flex;
+    align-items: end;
+    justify-content: center;
+    min-height: 6rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(180deg, rgba(255, 95, 31, 0.16), rgba(28, 28, 30, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #f3c0ae;
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+}
+
+.clippy-upload-thumb__duration,
+.clippy-upload-thumb__icon {
+    padding: 0.5rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.clippy-upload-content h3 {
+    margin: 0.15rem 0 0.4rem;
+    color: #f8f5f4;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.clippy-upload-content p {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: #d9bdb0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86rem;
+}
+
+.clippy-progress {
+    margin-top: 0.75rem;
+    width: 100%;
+    height: 0.38rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.clippy-progress__bar {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255, 181, 156, 1), rgba(255, 95, 31, 1));
+    box-shadow: 0 0 20px rgba(255, 95, 31, 0.35);
+}
+
+.clippy-bottom-nav {
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    width: min(100% - 1.5rem, 31.5rem);
+    padding: 0.85rem 0.7rem;
+    border-radius: 2rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    background: rgba(22, 22, 22, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(26px);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.48);
+    z-index: 30;
+}
+
+.clippy-bottom-nav__item {
+    min-height: 3.6rem;
+    padding: 0.5rem 0.4rem;
+    border-radius: 1.4rem;
+    text-decoration: none;
+    color: rgba(229, 226, 225, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease, color 180ms ease;
+}
+
+.clippy-bottom-nav__item.is-active {
+    color: #ffd0bb;
+    background: rgba(255, 95, 31, 0.16);
+    box-shadow: 0 0 0 1px rgba(255, 95, 31, 0.22), 0 0 24px rgba(255, 95, 31, 0.28);
+}
+
+.clippy-bottom-nav__icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    opacity: 0.95;
+    position: relative;
+}
+
+.clippy-bottom-nav__icon::before,
+.clippy-bottom-nav__icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    background: currentColor;
+}
+
+.clippy-bottom-nav__icon--home::before {
+    width: 0.95rem;
+    height: 0.95rem;
+    clip-path: polygon(50% 0, 100% 40%, 100% 100%, 60% 100%, 60% 65%, 40% 65%, 40% 100%, 0 100%, 0 40%);
+}
+
+.clippy-bottom-nav__icon--pulse::before {
+    width: 1.1rem;
+    height: 0.85rem;
+    clip-path: polygon(0 70%, 18% 70%, 34% 42%, 52% 80%, 70% 8%, 84% 52%, 100% 52%, 100% 62%, 79% 62%, 66% 34%, 48% 92%, 30% 52%, 14% 80%, 0 80%);
+}
+
+.clippy-bottom-nav__icon--link::before {
+    width: 1rem;
+    height: 0.25rem;
+    border-radius: 9999px;
+}
+
+.clippy-bottom-nav__icon--gear::before {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-radius: 9999px;
+    background: transparent;
+}
+
+.clippy-bottom-nav__icon--gear::after {
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 9999px;
+}
+
+.clippy-bottom-nav__label {
+    font-size: 0.65rem;
+}
+
+@media (min-width: 768px) {
+    .clippy-dashboard {
+        padding-bottom: 6rem;
+    }
+
+    .clippy-topbar,
+    .clippy-shell {
+        width: min(100%, 48rem);
+        margin: 0 auto;
+    }
+
+    .clippy-shell {
+        padding-top: 1.2rem;
+    }
+
+    .clippy-performance,
+    .clippy-card--hero,
+    .clippy-list-card {
+        border-radius: 2rem;
+    }
+
+    .clippy-bar-chart {
+        min-height: 20rem;
+    }
+}
