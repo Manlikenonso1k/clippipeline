@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BillingController;
-use App\Http\Controllers\IntegrationController;
+use App\Http\Controllers\SocialAuthController;
 
 Route::get('/', function () {
     return view('home');
@@ -23,8 +23,8 @@ Route::get('/billing/callback/{gateway}', [BillingController::class, 'callback']
 Route::post('/billing/webhook/{gateway}', [BillingController::class, 'webhook'])->name('billing.webhook');
 
 // Authentication (Google) - main login
-Route::get('/auth/redirect/{provider}', [IntegrationController::class, 'redirectToProvider'])->name('auth.redirect');
-Route::get('/auth/callback/{provider}', [IntegrationController::class, 'handleProviderCallback'])->name('auth.callback');
+Route::get('/auth/redirect/{provider}', [SocialAuthController::class, 'redirectToProvider'])->name('auth.redirect');
+Route::get('/auth/callback/{provider}', [SocialAuthController::class, 'handleProviderCallback'])->name('auth.callback');
 
 // Convenience named routes used by the frontend CTA buttons.
 Route::get('/auth/google', function () { return redirect()->route('auth.redirect', ['provider' => 'google']); })->name('auth.google');
@@ -34,12 +34,13 @@ Route::get('/auth/youtube', function () { return redirect()->route('integrations
 
 // Integrations (connect third-party APIs)
 Route::middleware(['auth'])->group(function () {
-    Route::get('/integrations', function () { return view('integrations.index'); })->name('integrations.index');
-    Route::get('/integrations/redirect/{provider}', [IntegrationController::class, 'redirectIntegration'])->name('integrations.redirect');
-    Route::get('/integrations/callback/{provider}', [IntegrationController::class, 'handleIntegrationCallback'])->name('integrations.callback');
+    Route::get('/integrations', function () { return view('filament.pages.connect-accounts'); })->name('integrations.index');
+    Route::get('/integrations/redirect/{provider}', [SocialAuthController::class, 'redirectIntegration'])->name('integrations.redirect');
+    Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'handleIntegrationCallback'])->name('integrations.callback');
+    Route::post('/integrations/disconnect/{provider}', [SocialAuthController::class, 'disconnect'])->name('integrations.disconnect');
 });
 
 // Temporary debug routes (local testing only) - expose integration redirects without auth
 if (app()->environment('local')) {
-    Route::get('/debug/integrations/redirect/{provider}', [IntegrationController::class, 'redirectIntegration']);
+    Route::get('/debug/integrations/redirect/{provider}', [SocialAuthController::class, 'redirectIntegration']);
 }

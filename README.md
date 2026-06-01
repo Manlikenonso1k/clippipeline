@@ -177,4 +177,6 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 # 2. Visit the integrations page (after login):
 # http://127.0.0.1:8000/integrations
+
+NOTE: The integrations UI was migrated to a native Filament page. The Filament page class is at `app/Filament/Pages/ConnectAccounts.php` and the view at `resources/views/filament/pages/connect-accounts.blade.php`.
 ```

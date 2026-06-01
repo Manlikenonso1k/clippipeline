@@ -10,22 +10,19 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\User;
+use Filament\Facades\Filament;
 
-class IntegrationController
+class SocialAuthController
 {
-    // Redirect for main login (e.g., google)
     public function redirectToProvider(Request $request, $provider)
     {
         if ($provider !== 'google') {
             abort(404);
         }
 
-        return Socialite::driver('google')
-            ->stateless()
-            ->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
-    // Callback for main login
     public function handleProviderCallback(Request $request, $provider)
     {
         if ($provider !== 'google') {
@@ -40,15 +37,21 @@ class IntegrationController
                 'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Google User',
                 'email' => $socialUser->getEmail(),
                 'avatar' => $socialUser->getAvatar(),
-                // ensure non-null password for DB constraints when creating via OAuth
                 'password' => Hash::make(Str::random(24)),
             ]
         );
 
         Auth::login($user, true);
 
+        // Bind Filament session explicitly
         try {
-            \Illuminate\Support\Facades\DB::table('users')->where('id', $user->id)->update([
+            Filament::auth()->login($user, remember: true);
+        } catch (\Throwable $e) {
+            // ignore if Filament not available
+        }
+
+        try {
+            DB::table('users')->where('id', $user->id)->update([
                 'last_ip' => $request->ip(),
                 'updated_at' => now(),
             ]);
@@ -56,10 +59,9 @@ class IntegrationController
             // don't break the login flow on IP save errors
         }
 
-        return redirect()->intended('/admin');
+        return redirect()->to('/admin');
     }
 
-    // Redirect to authorize integrations (youtube/google or instagram/facebook)
     public function redirectIntegration(Request $request, $provider)
     {
         if (!in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
@@ -67,7 +69,6 @@ class IntegrationController
         }
 
         if ($provider === 'youtube') {
-            // Request youtube upload and analytics scopes, offline access
             return Socialite::driver('google')
                 ->scopes(['https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/yt-analytics.readonly'])
                 ->with(['access_type' => 'offline', 'prompt' => 'consent'])
@@ -76,7 +77,6 @@ class IntegrationController
         }
 
         if ($provider === 'instagram') {
-            // Use Facebook provider for Instagram Graph API scopes
             return Socialite::driver('facebook')
                 ->scopes(['pages_show_list','pages_read_engagement','instagram_basic','instagram_content_publish'])
                 ->stateless()
@@ -84,16 +84,12 @@ class IntegrationController
         }
 
         if ($provider === 'tiktok') {
-            // TikTok OAuth (via SocialiteProviders/tiktok)
-            return Socialite::driver('tiktok')
-                ->stateless()
-                ->redirect();
+            return Socialite::driver('tiktok')->stateless()->redirect();
         }
 
         abort(400);
     }
 
-    // Handle callback and store tokens in social_accounts table
     public function handleIntegrationCallback(Request $request, $provider)
     {
         if (!in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
@@ -136,7 +132,7 @@ class IntegrationController
         }
 
         try {
-            \Illuminate\Support\Facades\DB::table('users')->where('id', $user->id)->update([
+            DB::table('users')->where('id', $user->id)->update([
                 'last_ip' => $request->ip(),
                 'updated_at' => now(),
             ]);
@@ -145,5 +141,18 @@ class IntegrationController
         }
 
         return redirect()->route('filament.admin.pages.connect-accounts')->with('status', ucfirst($provider).' connected');
+    }
+
+    // Disconnect integration
+    public function disconnect(Request $request, $provider)
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return redirect()->route('filament.admin.pages.connect-accounts');
+        }
+
+        DB::table('social_accounts')->where(['user_id' => $user->id, 'provider' => $provider])->delete();
+
+        return redirect()->route('filament.admin.pages.connect-accounts')->with('status', ucfirst($provider).' disconnected');
     }
 }
