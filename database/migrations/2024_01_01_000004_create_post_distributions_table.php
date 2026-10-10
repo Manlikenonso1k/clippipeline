@@ -16,7 +16,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'processing', 'published', 'failed'])->default('pending');
             $table->text('error_message')->nullable();
             $table->timestamps();
-            
+
             $table->index('post_id');
             $table->index('platform');
             $table->index('status');

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedInteger('watch_time')->default(0);
             $table->timestamp('recorded_at')->useCurrent();
             $table->timestamps();
-            
+
             $table->index(['post_id', 'platform']);
             $table->index('recorded_at');
         });

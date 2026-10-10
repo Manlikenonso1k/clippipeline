@@ -22,11 +22,15 @@ class SocialAccount extends Model
         'access_token',
         'refresh_token',
         'expires_at',
+        'meta',
+        'needs_attention',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'follower_count' => 'integer',
+        'meta' => 'array',
+        'needs_attention' => 'boolean',
     ];
 
     public function user(): BelongsTo

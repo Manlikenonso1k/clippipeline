@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('refresh_token')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'provider']);
             $table->unique(['user_id', 'platform_name']);
         });

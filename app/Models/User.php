@@ -13,17 +13,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'google_id', 'avatar', 'profile'])]
+#[Fillable(['name', 'email', 'password', 'google_id', 'avatar', 'profile', 'is_admin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return true;
-    }
-
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return (bool) $this->is_admin;
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'settings' => 'array',
+            'is_admin' => 'boolean',
         ];
     }
 

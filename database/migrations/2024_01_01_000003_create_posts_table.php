@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('downloaded_at')->nullable();
             $table->json('meta')->nullable();
             $table->timestamps();
-            
+
             $table->index('user_id');
             $table->index('tiktok_id');
             $table->index('social_account_id');
