@@ -15,6 +15,7 @@ class PostResource extends JsonResource
             'title' => $this->title,
             'caption' => $this->caption,
             'video_url' => $this->video_url,
+            'thumbnail' => $this->thumbnail,
             'tiktok_id' => $this->tiktok_id,
             'published_at' => $this->published_at?->toIso8601String(),
             'distributions' => PostDistributionResource::collection($this->distributions),

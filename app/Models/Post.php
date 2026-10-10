@@ -18,6 +18,7 @@ class Post extends Model
         'social_account_id',
         'title',
         'video_url',
+        'thumbnail',
         'published_at',
         'tiktok_id',
         'caption',
