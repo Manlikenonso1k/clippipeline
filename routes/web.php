@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Filament\Pages\ConnectAccounts;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\SocialAuthController;
-use App\Filament\Pages\ConnectAccounts;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('home');
@@ -28,14 +28,24 @@ Route::get('/auth/redirect/{provider}', [SocialAuthController::class, 'redirectT
 Route::get('/auth/callback/{provider}', [SocialAuthController::class, 'handleProviderCallback'])->name('auth.callback');
 
 // Convenience named routes used by the frontend CTA buttons.
-Route::get('/auth/google', function () { return redirect()->route('auth.redirect', ['provider' => 'google']); })->name('auth.google');
-Route::get('/auth/tiktok', function () { return redirect()->route('integrations.redirect', ['provider' => 'tiktok']); })->name('auth.tiktok');
-Route::get('/auth/meta', function () { return redirect()->route('integrations.redirect', ['provider' => 'instagram']); })->name('auth.meta');
-Route::get('/auth/youtube', function () { return redirect()->route('integrations.redirect', ['provider' => 'youtube']); })->name('auth.youtube');
+Route::get('/auth/google', function () {
+    return redirect()->route('auth.redirect', ['provider' => 'google']);
+})->name('auth.google');
+Route::get('/auth/tiktok', function () {
+    return redirect()->route('integrations.redirect', ['provider' => 'tiktok']);
+})->name('auth.tiktok');
+Route::get('/auth/meta', function () {
+    return redirect()->route('integrations.redirect', ['provider' => 'instagram']);
+})->name('auth.meta');
+Route::get('/auth/youtube', function () {
+    return redirect()->route('integrations.redirect', ['provider' => 'youtube']);
+})->name('auth.youtube');
 
 // Integrations (connect third-party APIs)
 Route::middleware(['auth'])->group(function () {
-    Route::get('/integrations', function () { return redirect()->to(ConnectAccounts::getUrl()); })->name('integrations.index');
+    Route::get('/integrations', function () {
+        return redirect()->to(ConnectAccounts::getUrl());
+    })->name('integrations.index');
     Route::get('/integrations/redirect/{provider}', [SocialAuthController::class, 'redirectIntegration'])->name('integrations.redirect');
     Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'handleIntegrationCallback'])->name('integrations.callback');
     Route::post('/integrations/disconnect/{provider}', [SocialAuthController::class, 'disconnect'])->name('integrations.disconnect');
