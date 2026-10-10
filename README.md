@@ -57,6 +57,77 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
+## What's New — Manual Cross-Posting, Admin Access & Ops (2026-10-10)
+
+This round made the app able to **actually publish a video to every connected
+account from the admin panel**, and hardened the pieces around it. Full server
+instructions live in [`DEPLOY.md`](DEPLOY.md).
+
+### Cross-posting (the headline feature)
+- **"Cross-post" action** on the Posts resource (single row **and** bulk). Pick the
+  target platforms (only the ones the owner has connected are enabled), set
+  title / caption / hashtags / YouTube privacy, and provide the video by **file
+  upload or public URL**.
+- Each target gets a `post_distributions` row (`queued → processing → published /
+  failed`). A **Distributions** panel on the post shows per-platform status, a link
+  to the published item, the error message, and a **Retry** button on failures.
+- Publishing runs on queued jobs that are **idempotent** (won't double-post) and
+  **scoped to the post's owner** (never another user's account).
+
+### Publishers
+- **YouTube Shorts** — implemented via the Data API with automatic access-token
+  refresh before upload.
+- **Instagram Reels** — implemented (create container → poll until FINISHED →
+  publish); needs an IG **Business/Creator** account linked to a Facebook Page.
+  The business id is captured on connect; `app:backfill-ig-ids` fills older
+  accounts; accounts missing it are flagged "needs attention" with a Reconnect.
+- **Facebook Reels** and **TikTok direct posting** — shown **disabled with a
+  reason**: they require a connected Facebook Page + Reels API App Review, and an
+  audited TikTok Content Posting app (`video.publish`) respectively.
+
+### Admin access
+- `App\Models\User` implements Filament's `FilamentUser`; panel access is gated on
+  an `is_admin` flag (migration added; existing users were flagged admin to
+  preserve access). Promote anyone with:
+  ```bash
+  php artisan app:make-admin you@example.com
+  ```
+
+### Operations
+- **Queue**: `QUEUE_CONNECTION=database`; `retry_after` (600s) is set above the job
+  timeout (300s) so long uploads are never retried mid-flight (no duplicates).
+- **Scheduler** drives a per-minute queue **heartbeat** and the TikTok poll
+  (which now skips cleanly when the scraper isn't configured).
+- **`php artisan app:health`** — worker heartbeat, pending/failed job counts, and
+  connected accounts with token expiry.
+- **Large uploads**: Livewire accepts mp4/mov up to **500MB** (see `DEPLOY.md` for
+  the matching php.ini / nginx limits). Videos are stored on the `public` disk and
+  served over absolute HTTPS URLs (required by Instagram).
+
+### New artisan commands
+| Command | Purpose |
+| --- | --- |
+| `app:make-admin {email}` | Create or promote an admin (panel access). |
+| `app:health` | Queue heartbeat, job counts, connected accounts + token expiry. |
+| `app:test-crosspost {email} {video_path}` | Smoke test: post a video to every connected platform (YouTube as private). |
+| `app:backfill-ig-ids` | Resolve + store `ig_user_id` for already-connected Instagram accounts. |
+
+### Schema changes (migrations)
+- `post_distributions`: added `published_at`, `meta`, `error`; `status` widened to
+  include `queued`.
+- `social_accounts`: added `meta` (holds `ig_user_id`) and `needs_attention`.
+- `users`: added `is_admin`.
+
+### PHP version
+Production runs **PHP 8.3.30**. `composer.json` pins `config.platform.php` to
+`8.3.30` so the lock resolves to packages that run on 8.3 (Symfony 7.x). Don't run
+`composer update` on a newer-PHP machine without that pin.
+
+### Tests
+`php artisan test` covers panel access, cross-post dispatch, distribution status
+writes, user-scoped account lookup, and idempotency (YouTube/Instagram HTTP calls
+are faked). Format with `./vendor/bin/pint`.
+
 ## Project Configuration
 
 This project implements a TikTok -> YouTube Shorts & Instagram Reels cross-posting pipeline. Configure the following environment variables in your .env:
