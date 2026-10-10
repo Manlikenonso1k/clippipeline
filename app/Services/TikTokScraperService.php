@@ -4,17 +4,23 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class TikTokScraperService
 {
     protected $baseUrl;
+
     protected $apiKey;
 
     public function __construct()
     {
-        $this->baseUrl = config('services.tiktok_scraper.url') ?? env('TIKTOK_SCRAPER_URL');
-        $this->apiKey = config('services.tiktok_scraper.key') ?? env('TIKTOK_SCRAPER_KEY');
+        $this->baseUrl = config('services.tiktok_scraper.url');
+        $this->apiKey = config('services.tiktok_scraper.key');
+    }
+
+    /** Whether the external scraper is configured; used to skip the poll cleanly. */
+    public function isConfigured(): bool
+    {
+        return ! empty($this->baseUrl);
     }
 
     // Returns latest video id for a username or null
@@ -30,6 +36,7 @@ class TikTokScraperService
         }
 
         $data = $resp->json();
+
         return $data['video_id'] ?? null;
     }
 
@@ -56,6 +63,7 @@ class TikTokScraperService
 
         try {
             Http::withOptions(['sink' => $localPath])->get($downloadUrl);
+
             // Return storage relative path
             return $filename;
         } catch (\Exception $e) {

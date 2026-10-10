@@ -2,12 +2,13 @@
 
 namespace App\Jobs;
 
+use App\Models\Post;
+use App\Services\CrossPostService;
+use App\Services\TikTokScraperService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
-use App\Services\TikTokScraperService;
 use Illuminate\Support\Facades\DB;
 
 class DownloadTikTokVideoJob implements ShouldQueue
@@ -40,6 +41,7 @@ class DownloadTikTokVideoJob implements ShouldQueue
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
             return;
         }
 
@@ -49,8 +51,13 @@ class DownloadTikTokVideoJob implements ShouldQueue
             'updated_at' => now(),
         ]);
 
-        // Dispatch publishing jobs
-        PublishToYouTubeShortsJob::dispatch($post->id);
-        PublishToInstagramReelsJob::dispatch($post->id);
+        // Fan out to every connected provider for the post owner.
+        $model = Post::find($post->id);
+        if ($model) {
+            app(CrossPostService::class)->dispatchAllConnected($model, [
+                'title' => $model->title,
+                'caption' => $model->caption,
+            ]);
+        }
     }
 }

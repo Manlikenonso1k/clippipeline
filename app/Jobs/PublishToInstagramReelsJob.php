@@ -2,73 +2,34 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use App\Models\PostDistribution;
+use App\Models\SocialAccount;
 use App\Services\InstagramService;
+use App\Support\VideoResolver;
+use RuntimeException;
 
-class PublishToInstagramReelsJob implements ShouldQueue
+class PublishToInstagramReelsJob extends PublishJob
 {
-    use InteractsWithQueue, Queueable, SerializesModels;
-
-    public $postId;
-
-    public function __construct(int $postId)
+    protected function provider(): string
     {
-        $this->postId = $postId;
+        return 'instagram';
     }
 
-    public function handle(InstagramService $ig)
+    protected function publish(PostDistribution $distribution, SocialAccount $account): string
     {
-        $post = DB::table('posts')->where('id', $this->postId)->first();
-        if (! $post) {
-            return;
+        $post = $distribution->post;
+        $meta = (array) $distribution->meta;
+
+        $caption = $meta['caption'] ?? $post->caption ?? '';
+        if (! empty($meta['hashtags'])) {
+            $caption = trim($caption."\n\n".$meta['hashtags']);
         }
 
-        $account = DB::table('social_accounts')->where('provider', 'instagram')->first();
-        if (! $account) {
-            DB::table('post_distributions')->updateOrInsert(
-                ['post_id' => $post->id, 'platform' => 'instagram'],
-                ['status' => 'failed', 'error_message' => 'No Instagram account connected', 'updated_at' => now(), 'created_at' => now()]
-            );
-            return;
+        $publicUrl = VideoResolver::publicUrl($post);
+        if (! $publicUrl) {
+            throw new RuntimeException('Instagram needs a public HTTPS video URL; upload the video or set a public URL on the post.');
         }
 
-        $filePath = $post->download_path;
-        if (! $filePath || ! file_exists(storage_path('app/'.ltrim($filePath, '\\/')))) {
-            DB::table('post_distributions')->updateOrInsert(
-                ['post_id' => $post->id, 'platform' => 'instagram'],
-                ['status' => 'failed', 'error_message' => 'Downloaded file not found', 'updated_at' => now(), 'created_at' => now()]
-            );
-            return;
-        }
-
-        $meta = json_decode($account->meta ?? '{}', true) ?: [];
-        $accessToken = $account->access_token ?? null;
-
-        $externalId = $ig->publishReel($filePath, $post->caption ?? '', $meta, $accessToken);
-
-        if (! $externalId) {
-            DB::table('post_distributions')->updateOrInsert(
-                ['post_id' => $post->id, 'platform' => 'instagram'],
-                ['status' => 'failed', 'error_message' => 'Instagram publish failed', 'updated_at' => now(), 'created_at' => now()]
-            );
-            return;
-        }
-
-        DB::table('post_distributions')->updateOrInsert(
-            ['post_id' => $post->id, 'platform' => 'instagram'],
-            [
-                'status' => 'published',
-                'external_id' => $externalId,
-                'published_at' => now(),
-                'meta' => json_encode(['note' => 'uploaded via InstagramService']),
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
+        return app(InstagramService::class)->publishReel($publicUrl, $caption, $account);
     }
 }

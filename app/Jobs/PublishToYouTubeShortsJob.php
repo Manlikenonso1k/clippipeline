@@ -2,73 +2,32 @@
 
 namespace App\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use App\Models\PostDistribution;
+use App\Models\SocialAccount;
 use App\Services\YouTubeService;
+use App\Support\VideoResolver;
 
-class PublishToYouTubeShortsJob implements ShouldQueue
+class PublishToYouTubeShortsJob extends PublishJob
 {
-    use InteractsWithQueue, Queueable, SerializesModels;
-
-    public $postId;
-
-    public function __construct(int $postId)
+    protected function provider(): string
     {
-        $this->postId = $postId;
+        return 'youtube';
     }
 
-    public function handle(YouTubeService $yt)
+    protected function publish(PostDistribution $distribution, SocialAccount $account): string
     {
-        $post = DB::table('posts')->where('id', $this->postId)->first();
-        if (! $post) {
-            return;
+        $post = $distribution->post;
+        $meta = (array) $distribution->meta;
+
+        $title = trim(($meta['title'] ?? $post->title ?? 'Untitled').' #Shorts');
+        $description = $meta['description'] ?? $post->caption ?? '';
+        if (! empty($meta['hashtags'])) {
+            $description = trim($description."\n\n".$meta['hashtags']);
         }
+        $privacy = $meta['privacy'] ?? 'public';
 
-        $account = DB::table('social_accounts')->where('provider', 'youtube')->first();
-        if (! $account) {
-            DB::table('post_distributions')->updateOrInsert(
-                ['post_id' => $post->id, 'platform' => 'youtube'],
-                ['status' => 'failed', 'error_message' => 'No YouTube account connected', 'updated_at' => now(), 'created_at' => now()]
-            );
-            return;
-        }
+        $localPath = VideoResolver::localPath($post);
 
-        $filePath = storage_path('app/'.ltrim($post->download_path, '\\/'));
-        if (! file_exists($filePath)) {
-            DB::table('post_distributions')->updateOrInsert(
-                ['post_id' => $post->id, 'platform' => 'youtube'],
-                ['status' => 'failed', 'error_message' => 'Downloaded file not found', 'updated_at' => now(), 'created_at' => now()]
-            );
-            return;
-        }
-
-        $title = trim(($post->caption ?? '') . ' #Shorts');
-        $description = $post->caption ?? '';
-
-        $externalId = $yt->uploadShort($filePath, $title, $description, $account->refresh_token ?? null);
-
-        if (! $externalId) {
-            DB::table('post_distributions')->updateOrInsert(
-                ['post_id' => $post->id, 'platform' => 'youtube'],
-                ['status' => 'failed', 'error_message' => 'YouTube upload failed', 'updated_at' => now(), 'created_at' => now()]
-            );
-            return;
-        }
-
-        DB::table('post_distributions')->updateOrInsert(
-            ['post_id' => $post->id, 'platform' => 'youtube'],
-            [
-                'status' => 'published',
-                'external_id' => $externalId,
-                'published_at' => now(),
-                'meta' => json_encode(['note' => 'uploaded via YouTubeService']),
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
+        return app(YouTubeService::class)->uploadShort($localPath, $title, $description, $account, $privacy);
     }
 }
