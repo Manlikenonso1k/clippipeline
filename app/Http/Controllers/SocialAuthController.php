@@ -72,6 +72,7 @@ class SocialAuthController
             return Socialite::driver('google')
                 ->scopes(['https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/yt-analytics.readonly'])
                 ->with(['access_type' => 'offline', 'prompt' => 'consent'])
+                ->redirectUrl(route('integrations.callback', ['provider' => 'youtube']))
                 ->stateless()
                 ->redirect();
         }
@@ -105,7 +106,15 @@ class SocialAuthController
             $driver = 'tiktok';
         }
 
-        $socialUser = Socialite::driver($driver)->stateless()->user();
+        $socialite = Socialite::driver($driver)->stateless();
+
+        // Google validates that the token-exchange redirect_uri matches the one used
+        // to start the flow, so re-apply the same integrations callback here.
+        if ($provider === 'youtube') {
+            $socialite = $socialite->redirectUrl(route('integrations.callback', ['provider' => 'youtube']));
+        }
+
+        $socialUser = $socialite->user();
 
         $user = Auth::user();
         if (! $user) {
@@ -119,6 +128,10 @@ class SocialAuthController
                     'provider' => $provider,
                 ],
                 [
+                    // platform_name has its own unique(user_id, platform_name) index and
+                    // defaults to 'tiktok'; set it to the real provider or the second
+                    // platform you connect collides with the first and the insert fails.
+                    'platform_name' => $provider,
                     'access_token' => $socialUser->token ?? null,
                     'refresh_token' => $socialUser->refreshToken ?? null,
                     'expires_at' => isset($socialUser->expiresIn) ? now()->addSeconds($socialUser->expiresIn) : null,

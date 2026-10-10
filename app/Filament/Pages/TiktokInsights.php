@@ -17,7 +17,9 @@ class TiktokInsights extends Page
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static ?string $navigationLabel = 'TikTok Insights';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $title = 'TikTok Insights';
 
