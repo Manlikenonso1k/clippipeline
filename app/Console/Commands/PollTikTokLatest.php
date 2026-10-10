@@ -2,18 +2,27 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\DownloadTikTokVideoJob;
+use App\Services\TikTokScraperService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Services\TikTokScraperService;
-use App\Jobs\DownloadTikTokVideoJob;
+use Illuminate\Support\Facades\Log;
 
 class PollTikTokLatest extends Command
 {
     protected $signature = 'tiktok:poll-latest';
+
     protected $description = 'Poll configured users for their latest TikTok video and enqueue processing';
 
     public function handle(TikTokScraperService $scraper)
     {
+        if (! $scraper->isConfigured()) {
+            $this->warn('TikTok scraper is not configured (TIKTOK_SCRAPER_URL / TIKTOK_SCRAPER_KEY). Skipping poll. Manual cross-post is unaffected.');
+            Log::info('tiktok:poll-latest skipped — scraper not configured.');
+
+            return self::SUCCESS;
+        }
+
         $this->info('Polling users for latest TikTok videos...');
 
         $users = DB::table('users')->whereNotNull('settings')->get();
@@ -28,18 +37,21 @@ class PollTikTokLatest extends Command
             $latest = $scraper->getLatestVideoId($username);
             if (! $latest) {
                 $this->line("No latest found for {$username}");
+
                 continue;
             }
 
             $exists = DB::table('posts')->where('tiktok_id', $latest)->exists();
             if ($exists) {
                 $this->line("Already processed {$latest} for {$username}");
+
                 continue;
             }
 
             // Abuse / rate checks: prevent free-plan users from exceeding free limits
             if (! $this->canCreatePost($user)) {
                 $this->line("Skipping {$latest} for user {$user->id} — rate/IP limits or flagged");
+
                 continue;
             }
 
@@ -86,6 +98,7 @@ class PollTikTokLatest extends Command
         $userPosts = DB::table('posts')->where('user_id', $user->id)->count();
         if ($userPosts >= $freeLimit) {
             $this->flagUser($user, 'free_quota_exceeded');
+
             return false;
         }
 
@@ -109,6 +122,7 @@ class PollTikTokLatest extends Command
         // thresholds — tune these as needed
         if ($distinctAccountsFromIp >= 3 || $postsFromIp >= ($freeLimit * 2)) {
             $this->flagUser($user, 'ip_abuse_suspected');
+
             return false;
         }
 

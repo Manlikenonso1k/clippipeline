@@ -2,15 +2,16 @@
 
 namespace App\Console\Commands;
 
+use App\Services\InstagramService;
+use App\Services\YouTubeService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Services\YouTubeService;
-use App\Services\InstagramService;
 
 class TestSocialUploads extends Command
 {
     protected $signature = 'social:test-upload {--file=} {--postId=}';
+
     protected $description = 'Test uploading a local file or a post to YouTube Shorts and Instagram Reels using stored credentials';
 
     public function handle(YouTubeService $yt, InstagramService $ig)
@@ -20,6 +21,7 @@ class TestSocialUploads extends Command
 
         if (! $fileOpt && ! $postIdOpt) {
             $this->error('Provide either --file=path or --postId=ID');
+
             return 1;
         }
 
@@ -28,6 +30,7 @@ class TestSocialUploads extends Command
             $post = DB::table('posts')->where('id', $postIdOpt)->first();
             if (! $post) {
                 $this->error('Post not found');
+
                 return 1;
             }
 
@@ -38,6 +41,7 @@ class TestSocialUploads extends Command
             $src = $fileOpt;
             if (! file_exists($src)) {
                 $this->error('File does not exist: '.$src);
+
                 return 1;
             }
 
@@ -78,7 +82,7 @@ class TestSocialUploads extends Command
         $igAccount = DB::table('social_accounts')->where('provider', 'instagram')->first();
         if ($igAccount) {
             $this->info('Publishing to Instagram...');
-            $meta = json_decode($igAccount->meta ?? '{}' , true) ?: [];
+            $meta = json_decode($igAccount->meta ?? '{}', true) ?: [];
             $access = $igAccount->access_token ?? null;
             $externalIg = $ig->publishReel($relative, $caption, $meta, $access);
             if ($externalIg) {
@@ -91,6 +95,7 @@ class TestSocialUploads extends Command
         }
 
         $this->info('Test run complete. Check post_distributions table for any records created/updated.');
+
         return 0;
     }
 }
