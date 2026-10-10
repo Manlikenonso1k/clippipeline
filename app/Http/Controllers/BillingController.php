@@ -20,11 +20,11 @@ class BillingController
     {
         $plans = $this->plans();
 
-        if (!array_key_exists($plan, $plans)) {
+        if (! array_key_exists($plan, $plans)) {
             abort(404);
         }
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->guest(route('auth.redirect', ['provider' => 'google']));
         }
 
@@ -44,11 +44,11 @@ class BillingController
         $plans = $this->plans();
         $gateways = $this->gateways();
 
-        if (!array_key_exists($plan, $plans) || !array_key_exists($gateway, $gateways)) {
+        if (! array_key_exists($plan, $plans) || ! array_key_exists($gateway, $gateways)) {
             abort(404);
         }
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->guest(route('auth.redirect', ['provider' => 'google']));
         }
 
@@ -57,6 +57,7 @@ class BillingController
 
         if ($selectedPlan['price'] === 0) {
             $this->activatePlan($user, $plan, 'free', null);
+
             return redirect('/#pricing')->with('status', 'Starter plan activated.');
         }
 
@@ -85,11 +86,11 @@ class BillingController
 
     public function callback(Request $request, string $gateway): RedirectResponse
     {
-        if (!array_key_exists($gateway, $this->gateways())) {
+        if (! array_key_exists($gateway, $this->gateways())) {
             abort(404);
         }
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect('/#pricing')->withErrors('Please sign in and retry checkout verification.');
         }
 
@@ -97,15 +98,16 @@ class BillingController
         $reference = $this->extractReferenceFromCallback($request, $gateway);
         $verification = $this->verifyGatewayPayment($gateway, $request, $reference);
 
-        if (!$verification['success']) {
+        if (! $verification['success']) {
             $this->markCheckoutFailed($user, $gateway, $reference);
+
             return redirect('/#pricing')->withErrors($verification['message']);
         }
 
         $billing = (array) (($user->settings ?? [])['billing'] ?? []);
         $plan = (string) ($billing['plan'] ?? '');
 
-        if (!array_key_exists($plan, $this->plans())) {
+        if (! array_key_exists($plan, $this->plans())) {
             return redirect('/#pricing')->withErrors('Could not resolve plan after payment verification.');
         }
 
@@ -116,11 +118,11 @@ class BillingController
 
     public function webhook(Request $request, string $gateway): JsonResponse
     {
-        if (!array_key_exists($gateway, $this->gateways())) {
+        if (! array_key_exists($gateway, $this->gateways())) {
             abort(404);
         }
 
-        if (!$this->isValidWebhookSignature($request, $gateway)) {
+        if (! $this->isValidWebhookSignature($request, $gateway)) {
             return response()->json(['ok' => false, 'message' => 'Invalid signature'], 401);
         }
 
@@ -136,24 +138,25 @@ class BillingController
             ?? $payload['tx_ref']
             ?? null;
 
-        if (!$reference) {
+        if (! $reference) {
             return response()->json(['ok' => false, 'message' => 'Missing reference'], 422);
         }
 
         $user = $this->findUserByCheckoutReference($reference);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['ok' => true, 'message' => 'Reference received']);
         }
 
         $billing = (array) (($user->settings ?? [])['billing'] ?? []);
         $plan = (string) ($billing['plan'] ?? '');
-        if (!array_key_exists($plan, $this->plans())) {
+        if (! array_key_exists($plan, $this->plans())) {
             return response()->json(['ok' => false, 'message' => 'Invalid plan state'], 422);
         }
 
         $verification = $this->verifyGatewayPayment($gateway, $request, $reference);
-        if (!$verification['success']) {
+        if (! $verification['success']) {
             $this->markCheckoutFailed($user, $gateway, $reference);
+
             return response()->json(['ok' => true, 'message' => 'Verification failed']);
         }
 
@@ -167,29 +170,31 @@ class BillingController
         $mapping = $this->mapTgiPayWebhookPayload($payload);
         $reference = $mapping['reference'];
 
-        if (!$reference) {
+        if (! $reference) {
             return response()->json(['ok' => false, 'message' => 'Missing reference'], 422);
         }
 
         $user = $this->findUserByCheckoutReference($reference);
-        if (!$user) {
+        if (! $user) {
             return response()->json(['ok' => true, 'message' => 'Reference received']);
         }
 
         $billing = (array) (($user->settings ?? [])['billing'] ?? []);
         $plan = (string) ($billing['plan'] ?? '');
-        if (!array_key_exists($plan, $this->plans())) {
+        if (! array_key_exists($plan, $this->plans())) {
             return response()->json(['ok' => false, 'message' => 'Invalid plan state'], 422);
         }
 
         $state = $mapping['state'];
         if ($state === 'pending') {
             $this->markCheckoutPending($user, 'tgipay', $reference, $mapping['transaction_id']);
+
             return response()->json(['ok' => true, 'message' => 'Pending payment event received']);
         }
 
         if ($state === 'failed') {
             $this->markCheckoutFailed($user, 'tgipay', $reference);
+
             return response()->json(['ok' => true, 'message' => 'Failure event received']);
         }
 
@@ -199,14 +204,16 @@ class BillingController
                 'event' => $mapping['event'],
                 'status' => $mapping['status'],
             ]);
+
             return response()->json(['ok' => true, 'message' => 'Ignored event']);
         }
 
         $enforceVerify = (bool) config('services.tgipay.enforce_verify_on_success', true);
         if ($enforceVerify) {
             $verification = $this->verifyTgiPayPayment($reference);
-            if (!$verification['success']) {
+            if (! $verification['success']) {
                 $this->markCheckoutFailed($user, 'tgipay', $reference);
+
                 return response()->json(['ok' => true, 'message' => 'Verification failed']);
             }
 
@@ -278,7 +285,7 @@ class BillingController
             ->json();
 
         $url = $response['data']['authorization_url'] ?? null;
-        if (!$url) {
+        if (! $url) {
             throw new \RuntimeException('Missing authorization URL from Paystack');
         }
 
@@ -313,7 +320,7 @@ class BillingController
             ->json();
 
         $url = $response['data']['link'] ?? null;
-        if (!$url) {
+        if (! $url) {
             throw new \RuntimeException('Missing checkout link from Flutterwave');
         }
 
@@ -355,7 +362,7 @@ class BillingController
             ?? $response['link']
             ?? null;
 
-        if (!$url) {
+        if (! $url) {
             throw new \RuntimeException('Missing checkout URL from TgiPay');
         }
 
@@ -364,7 +371,7 @@ class BillingController
 
     private function verifyGatewayPayment(string $gateway, Request $request, ?string $reference): array
     {
-        if (!$reference) {
+        if (! $reference) {
             return [
                 'success' => false,
                 'transaction_id' => null,
@@ -398,6 +405,7 @@ class BillingController
             ];
         } catch (\Throwable $exception) {
             Log::warning('Paystack verification failed', ['reference' => $reference, 'message' => $exception->getMessage()]);
+
             return ['success' => false, 'transaction_id' => null, 'message' => 'Unable to verify Paystack payment.'];
         }
     }
@@ -429,6 +437,7 @@ class BillingController
             ];
         } catch (\Throwable $exception) {
             Log::warning('Flutterwave verification failed', ['reference' => $reference, 'message' => $exception->getMessage()]);
+
             return ['success' => false, 'transaction_id' => null, 'message' => 'Unable to verify Flutterwave payment.'];
         }
     }
@@ -459,6 +468,7 @@ class BillingController
             ];
         } catch (\Throwable $exception) {
             Log::warning('TgiPay verification failed', ['reference' => $reference, 'message' => $exception->getMessage()]);
+
             return ['success' => false, 'transaction_id' => null, 'message' => 'Unable to verify TgiPay payment.'];
         }
     }
@@ -579,6 +589,7 @@ class BillingController
         }
 
         $calculated = hash_hmac($algo, $rawBody, $secret);
+
         return hash_equals($calculated, $incomingSignature);
     }
 

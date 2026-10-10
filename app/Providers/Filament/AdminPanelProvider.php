@@ -3,6 +3,9 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\AnalyticsOverview;
+use App\Filament\Widgets\PerformanceChartWidget;
+use App\Filament\Widgets\PopularPostsWidget;
+use App\Filament\Widgets\StatsOverviewWidget;
 use App\Filament\Widgets\TopPostsTable;
 use App\Filament\Widgets\ViewsTrendChart;
 use Filament\Http\Middleware\Authenticate;
@@ -48,9 +51,9 @@ class AdminPanelProvider extends PanelProvider
                 AnalyticsOverview::class,
                 ViewsTrendChart::class,
                 TopPostsTable::class,
-                \App\Filament\Widgets\StatsOverviewWidget::class,
-                \App\Filament\Widgets\PerformanceChartWidget::class,
-                \App\Filament\Widgets\PopularPostsWidget::class,
+                StatsOverviewWidget::class,
+                PerformanceChartWidget::class,
+                PopularPostsWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])

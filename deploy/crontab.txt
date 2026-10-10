@@ -1,0 +1,6 @@
+# ClipPipeline scheduler (item 6).
+# Install with: crontab -e   (as the deploy user), then add the line below.
+# Runs Laravel's scheduler every minute; it drives the queue heartbeat and
+# tiktok:poll-latest. Adjust the path to your artisan file.
+
+* * * * * php /var/www/clippipeline/artisan schedule:run >> /dev/null 2>&1
