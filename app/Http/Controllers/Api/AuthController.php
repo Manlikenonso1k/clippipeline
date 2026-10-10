@@ -53,6 +53,25 @@ class AuthController extends Controller
         ]);
     }
 
+    public function login(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user || ! $user->password || ! Hash::check($validated['password'], $user->password)) {
+            abort(422, 'These credentials do not match our records.');
+        }
+
+        return response()->json([
+            'token' => $user->createToken('mobile')->plainTextToken,
+            'user' => $user,
+        ]);
+    }
+
     public function facebookToken(Request $request): JsonResponse
     {
         $validated = $request->validate([
