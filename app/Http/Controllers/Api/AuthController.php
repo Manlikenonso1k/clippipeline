@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SocialAccountResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -167,19 +168,23 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json($request->user());
+        $user = $request->user();
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar' => $user->avatar,
+            ],
+            'server_time' => now()->toIso8601String(),
+        ]);
     }
 
     public function socialAccounts(Request $request): JsonResponse
     {
-        return response()->json($request->user()->socialAccounts()->get([
-            'id',
-            'provider',
-            'platform_name',
-            'handle',
-            'expires_at',
-            'needs_attention',
-            'meta',
-        ]));
+        return response()->json(
+            SocialAccountResource::collection($request->user()->socialAccounts()->get())->resolve()
+        );
     }
 }
