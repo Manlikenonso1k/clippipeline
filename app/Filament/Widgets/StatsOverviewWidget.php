@@ -12,7 +12,7 @@ class StatsOverviewWidget extends BaseWidget
     protected function getStats(): array
     {
         $user = auth()->user();
-        
+
         // Get all time views
         $totalViews = PostAnalytic::whereIn(
             'post_id',
@@ -56,8 +56,8 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('All-time across all platforms')
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('success'),
-            
-            Stat::make('24h Growth Velocity', round($growthVelocity24h, 1) . '%')
+
+            Stat::make('24h Growth Velocity', round($growthVelocity24h, 1).'%')
                 ->description('Growth rate vs previous 24h')
                 ->descriptionIcon('heroicon-m-chart-bar')
                 ->color($growthVelocity24h > 0 ? 'success' : 'danger'),

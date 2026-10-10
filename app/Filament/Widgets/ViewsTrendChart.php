@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class ViewsTrendChart extends ChartWidget
 {
     protected ?string $heading = 'Views (last 14 days)';
+
     protected static ?int $sort = 2;
 
     protected int|string|array $columnSpan = 'full';

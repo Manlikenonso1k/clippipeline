@@ -33,8 +33,13 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
+                @if($connected && ($accounts[$key]->needs_attention ?? false))
+                    <p class="mt-2 text-sm text-amber-600">Needs attention: no Instagram Business account found. Reconnect after linking one to a Facebook Page.</p>
+                @endif
+
+                <div class="mt-4 flex items-center gap-2">
                     @if($connected)
+                        <a href="{{ route('integrations.redirect', ['provider' => $key]) }}" class="inline-block px-3 py-2 bg-blue-600 text-white rounded">Reconnect</a>
                         <form method="POST" action="{{ route('integrations.disconnect', ['provider' => $key]) }}">
                             @csrf
                             <button type="submit" class="inline-block px-3 py-2 bg-red-600 text-white rounded">Disconnect</button>

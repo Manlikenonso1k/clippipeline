@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 class TopPostsTable extends TableWidget
 {
     protected static ?string $heading = 'Top Posts';
+
     protected static ?int $sort = 3;
 
     protected int|string|array $columnSpan = 'full';

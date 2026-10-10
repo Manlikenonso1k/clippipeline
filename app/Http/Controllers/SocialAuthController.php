@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\InstagramService;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use App\Models\User;
-use Filament\Facades\Filament;
+use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController
 {
@@ -64,7 +65,7 @@ class SocialAuthController
 
     public function redirectIntegration(Request $request, $provider)
     {
-        if (!in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
+        if (! in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
             abort(404);
         }
 
@@ -79,7 +80,7 @@ class SocialAuthController
 
         if ($provider === 'instagram') {
             return Socialite::driver('facebook')
-                ->scopes(['pages_show_list','pages_read_engagement','instagram_basic','instagram_content_publish'])
+                ->scopes(['pages_show_list', 'pages_read_engagement', 'instagram_basic', 'instagram_content_publish'])
                 ->stateless()
                 ->redirect();
         }
@@ -93,7 +94,7 @@ class SocialAuthController
 
     public function handleIntegrationCallback(Request $request, $provider)
     {
-        if (!in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
+        if (! in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
             abort(404);
         }
 
@@ -121,6 +122,19 @@ class SocialAuthController
             return redirect('/')->withErrors('You must be logged in to connect integrations.');
         }
 
+        // For Instagram, resolve the business user id now (needed to publish Reels).
+        $meta = [];
+        $needsAttention = false;
+        if ($provider === 'instagram' && ($socialUser->token ?? null)) {
+            $resolved = app(InstagramService::class)->resolveBusinessUserId($socialUser->token);
+            if ($resolved) {
+                $meta['ig_user_id'] = $resolved['ig_user_id'];
+                $meta['login_flow'] = $resolved['flow'];
+            } else {
+                $needsAttention = true;
+            }
+        }
+
         try {
             DB::table('social_accounts')->updateOrInsert(
                 [
@@ -135,13 +149,21 @@ class SocialAuthController
                     'access_token' => $socialUser->token ?? null,
                     'refresh_token' => $socialUser->refreshToken ?? null,
                     'expires_at' => isset($socialUser->expiresIn) ? now()->addSeconds($socialUser->expiresIn) : null,
+                    'meta' => $meta ? json_encode($meta) : null,
+                    'needs_attention' => $needsAttention,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]
             );
         } catch (\Exception $e) {
             Log::error('Integration callback store failed: '.$e->getMessage());
+
             return redirect()->route('filament.admin.pages.connect-accounts')->withErrors('Failed to store integration credentials.');
+        }
+
+        if ($needsAttention) {
+            return redirect()->route('filament.admin.pages.connect-accounts')
+                ->withErrors('Instagram connected, but no Business/Creator account was found. Link an Instagram Business account to a Facebook Page, then use Reconnect.');
         }
 
         try {

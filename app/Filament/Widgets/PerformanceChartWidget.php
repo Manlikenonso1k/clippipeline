@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class PerformanceChartWidget extends ChartWidget
 {
     protected ?string $heading = 'Performance Over 30 Days';
+
     protected static ?int $sort = 2;
 
     protected function getData(): array
@@ -34,17 +35,17 @@ class PerformanceChartWidget extends ChartWidget
 
         foreach ($platforms as $platform) {
             $data = [];
-            
+
             for ($i = $days - 1; $i >= 0; $i--) {
                 $date = now()->subDays($i);
-                
+
                 $views = PostAnalytic::whereIn(
                     'post_id',
                     DB::table('posts')->where('user_id', $user->id)->pluck('id')
                 )
-                ->where('platform', $platform)
-                ->whereDate('recorded_at', $date->toDateString())
-                ->sum('views');
+                    ->where('platform', $platform)
+                    ->whereDate('recorded_at', $date->toDateString())
+                    ->sum('views');
 
                 $data[] = $views;
             }
@@ -53,7 +54,7 @@ class PerformanceChartWidget extends ChartWidget
                 'label' => ucfirst($platform),
                 'data' => $data,
                 'borderColor' => $platformColors[$platform] ?? 'rgb(75, 192, 192)',
-                'backgroundColor' => str_replace('rgb', 'rgba', $platformColors[$platform] ?? 'rgb(75, 192, 192)') . ', 0.1)',
+                'backgroundColor' => str_replace('rgb', 'rgba', $platformColors[$platform] ?? 'rgb(75, 192, 192)').', 0.1)',
                 'tension' => 0.4,
                 'fill' => true,
             ];
