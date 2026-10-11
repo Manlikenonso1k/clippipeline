@@ -33,6 +33,43 @@ class PostDistribution extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    protected static function booted(): void
+    {
+        // Push the post's owner when a distribution finishes — failures first.
+        static::saved(function (PostDistribution $distribution) {
+            $changed = $distribution->wasRecentlyCreated || $distribution->wasChanged('status');
+            if (! $changed) {
+                return;
+            }
+
+            $user = $distribution->post?->user;
+            if (! $user) {
+                return;
+            }
+
+            $platform = ucfirst((string) $distribution->platform);
+            $push = app(\App\Services\ExpoPushService::class);
+
+            if ($distribution->status === self::STATUS_FAILED) {
+                $push->sendToUser(
+                    $user,
+                    'Post failed to publish',
+                    "We couldn't publish your clip to {$platform}. Tap to review.",
+                    ['type' => 'distribution_failed', 'screen' => 'post', 'postId' => $distribution->post_id],
+                    'alerts',
+                );
+            } elseif ($distribution->status === self::STATUS_PUBLISHED) {
+                $push->sendToUser(
+                    $user,
+                    'Clip published',
+                    "Your clip is now live on {$platform}.",
+                    ['type' => 'distribution_published', 'screen' => 'post', 'postId' => $distribution->post_id],
+                    'published',
+                );
+            }
+        });
+    }
+
     public function post(): BelongsTo
     {
         return $this->belongsTo(Post::class);
