@@ -5,37 +5,116 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResource;
 use App\Models\Post;
+use App\Models\SocialAccount;
+use App\Services\CrossPostService;
+use App\Services\PostUploadService;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class PostController extends Controller
 {
+    private const RELATIONS = ['distributions', 'analytics'];
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'filter' => ['nullable', 'in:all,published,processing,failed'],
+            'filter' => ['nullable', 'in:all,published,processing,failed,scheduled'],
         ]);
         $filter = $validated['filter'] ?? 'all';
 
         $posts = $request->user()->posts()
-            ->with(['distributions', 'analytics'])
-            ->when($filter !== 'all', fn ($q) => $q->whereHas(
-                'distributions',
-                fn ($d) => $d->where('status', $filter)
-            ))
+            ->with(self::RELATIONS)
+            ->latest('created_at')
             ->latest('id')
             ->get();
 
-        // Plain array (no "data" wrapper) to match the mobile app's types.
+        if ($filter !== 'all') {
+            $posts = $posts->filter(fn (Post $post) => $post->overallStatus() === $filter)->values();
+        }
+
+        // Plain array (no "data" wrapper) per docs/CONTRACT.md.
         return response()->json(PostResource::collection($posts)->resolve());
     }
 
-    public function show(Request $request, Post $post): JsonResponse
+    public function show(Request $request, string $post): JsonResponse
     {
-        abort_unless($post->user_id === $request->user()->id, 404);
+        $model = $request->user()->posts()->with(self::RELATIONS)->whereKey($post)->first();
+        abort_unless($model, 404, 'Not found.');
+
+        return response()->json((new PostResource($model))->resolve());
+    }
+
+    public function store(Request $request, PostUploadService $uploads): JsonResponse
+    {
+        $user = $request->user();
+        $maxKb = (int) config('clippipeline.max_upload_mb', 200) * 1024;
+
+        $active = SocialAccount::query()
+            ->where('user_id', $user->id)
+            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'active'))
+            ->pluck('provider')
+            ->all();
+
+        $validated = $request->validate([
+            'video' => ['required', 'file', 'mimetypes:video/mp4,video/quicktime,video/webm', 'max:'.$maxKb],
+            'title' => ['required', 'string', 'max:100'],
+            'caption' => ['nullable', 'string', 'max:2200'],
+            'hashtags' => ['nullable', function (string $attribute, mixed $value, Closure $fail) {
+                if (! is_string($value) && ! is_array($value)) {
+                    $fail('The hashtags field must be an array or a string.');
+                }
+            }],
+            'hashtags.*' => ['string', 'max:100'],
+            'platforms' => ['required', 'array', 'min:1'],
+            'platforms.*' => [
+                'required',
+                'string',
+                'distinct',
+                'in:'.implode(',', CrossPostService::PLATFORMS),
+                function (string $attribute, mixed $value, Closure $fail) use ($active) {
+                    if (in_array($value, CrossPostService::PLATFORMS, true) && ! in_array($value, $active, true)) {
+                        $fail("Connect an active {$value} account first.");
+                    }
+                },
+            ],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+        ]);
+
+        $post = $uploads->create(
+            $user,
+            $request->file('video'),
+            $validated['title'],
+            $validated['caption'] ?? null,
+            $this->normalizeHashtags($validated['hashtags'] ?? null),
+            $validated['platforms'],
+            ! empty($validated['scheduled_at']) ? Carbon::parse($validated['scheduled_at'])->utc() : null,
+        );
 
         return response()->json(
-            (new PostResource($post->load(['distributions', 'analytics'])))->resolve()
+            (new PostResource($post->load(self::RELATIONS)))->resolve(),
+            201,
         );
+    }
+
+    /**
+     * Accept hashtags[] or one comma/space separated string; store without '#'.
+     *
+     * @return array<int, string>
+     */
+    private function normalizeHashtags(mixed $value): array
+    {
+        $tags = [];
+        foreach ((array) $value as $item) {
+            foreach (preg_split('/[\s,]+/', (string) $item) ?: [] as $part) {
+                $tag = ltrim(trim($part), '#');
+                if ($tag !== '' && ! in_array($tag, $tags, true)) {
+                    $tags[] = $tag;
+                }
+            }
+        }
+
+        return $tags;
     }
 }

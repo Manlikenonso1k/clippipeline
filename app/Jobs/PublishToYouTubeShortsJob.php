@@ -5,29 +5,51 @@ namespace App\Jobs;
 use App\Models\PostDistribution;
 use App\Models\SocialAccount;
 use App\Services\YouTubeService;
-use App\Support\VideoResolver;
+use App\Services\YouTubeSessionExpired;
 
+/** YouTube Shorts via videos.insert resumable upload (resumes across retries). */
 class PublishToYouTubeShortsJob extends PublishJob
 {
-    protected function provider(): string
+    protected function platform(): string
     {
         return 'youtube';
     }
 
-    protected function publish(PostDistribution $distribution, SocialAccount $account): string
+    protected function publish(PostDistribution $distribution, SocialAccount $account, string $token): ?PublishResult
     {
         $post = $distribution->post;
-        $meta = (array) $distribution->meta;
+        $youtube = app(YouTubeService::class);
+        $path = $this->localVideoPath($post);
+        $privacy = (string) config('services.youtube.privacy_status', 'private');
 
-        $title = trim(($meta['title'] ?? $post->title ?? 'Untitled').' #Shorts');
-        $description = $meta['description'] ?? $post->caption ?? '';
-        if (! empty($meta['hashtags'])) {
-            $description = trim($description."\n\n".$meta['hashtags']);
+        $title = $this->title($post, $distribution);
+        if (! str_contains(mb_strtolower($title), '#shorts')) {
+            $title = trim(mb_substr($title, 0, 91).' #Shorts');
         }
-        $privacy = $meta['privacy'] ?? 'public';
 
-        $localPath = VideoResolver::localPath($post);
+        $sessionUri = ((array) $distribution->meta)['yt_upload_uri'] ?? null;
 
-        return app(YouTubeService::class)->uploadShort($localPath, $title, $description, $account, $privacy);
+        try {
+            if (! $sessionUri) {
+                $sessionUri = $youtube->startSession($token, $path, $title, $this->caption($post, $distribution), $post->hashtagList(), $privacy);
+                $distribution->privacy = $privacy;
+                $this->remember($distribution, ['yt_upload_uri' => $sessionUri]);
+                $video = $youtube->uploadToSession($sessionUri, $token, $path);
+            } else {
+                $video = $youtube->uploadToSession($sessionUri, $token, $path, resume: true);
+            }
+        } catch (YouTubeSessionExpired $e) {
+            $this->forget($distribution, ['yt_upload_uri']);
+            throw $e;
+        }
+
+        $id = (string) $video['id'];
+        $distribution->privacy = $video['status']['privacyStatus'] ?? $privacy;
+
+        return new PublishResult(
+            externalId: $id,
+            url: 'https://www.youtube.com/shorts/'.$id,
+            thumbnail: $youtube->thumbnailFrom($video),
+        );
     }
 }

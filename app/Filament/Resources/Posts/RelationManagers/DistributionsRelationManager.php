@@ -9,6 +9,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class DistributionsRelationManager extends RelationManager
 {
@@ -51,23 +52,13 @@ class DistributionsRelationManager extends RelationManager
                     ->visible(fn (PostDistribution $record): bool => $record->isFailed())
                     ->requiresConfirmation()
                     ->action(function (PostDistribution $record): void {
-                        $registry = app(CrossPostService::class)->registry();
-                        $job = $registry[$record->platform]['job'] ?? null;
-
-                        if (! $job) {
-                            Notification::make()->title('No publisher available for '.$record->platform)->warning()->send();
+                        try {
+                            app(CrossPostService::class)->retry($record);
+                        } catch (ConflictHttpException $e) {
+                            Notification::make()->title($e->getMessage())->warning()->send();
 
                             return;
                         }
-
-                        $record->update([
-                            'status' => PostDistribution::STATUS_QUEUED,
-                            'error' => null,
-                            'error_message' => null,
-                            'external_id' => null,
-                        ]);
-
-                        $job::dispatch($record->id);
 
                         Notification::make()->title('Retrying '.$record->platform)->success()->send();
                     }),

@@ -19,20 +19,30 @@ class PostDistribution extends Model
         'error_message',
         'published_at',
         'meta',
+        'attempts',
+        'privacy',
+        'dispatched_at',
     ];
 
     protected $casts = [
         'meta' => 'array',
         'published_at' => 'datetime',
+        'dispatched_at' => 'datetime',
+        'attempts' => 'integer',
     ];
 
     public const STATUS_QUEUED = 'queued';
+
+    public const STATUS_UPLOADING = 'uploading';
 
     public const STATUS_PROCESSING = 'processing';
 
     public const STATUS_PUBLISHED = 'published';
 
     public const STATUS_FAILED = 'failed';
+
+    /** Statuses that mean the publish is still running. */
+    public const IN_FLIGHT = [self::STATUS_QUEUED, self::STATUS_UPLOADING, self::STATUS_PROCESSING];
 
     protected static function booted(): void
     {
@@ -83,7 +93,7 @@ class PostDistribution extends Model
 
     public function isProcessing(): bool
     {
-        return $this->status === self::STATUS_PROCESSING;
+        return in_array($this->status, [self::STATUS_UPLOADING, self::STATUS_PROCESSING], true);
     }
 
     public function isPublished(): bool
@@ -103,10 +113,16 @@ class PostDistribution extends Model
             return null;
         }
 
+        // Publish jobs store the platform's own link (null when it has none, e.g. private TikTok).
+        $meta = (array) $this->meta;
+        if (array_key_exists('url', $meta)) {
+            return is_string($meta['url']) && $meta['url'] !== '' ? $meta['url'] : null;
+        }
+
         return match ($this->platform) {
             'youtube' => 'https://www.youtube.com/watch?v='.$this->external_id,
             'instagram' => 'https://www.instagram.com/reel/'.$this->external_id,
-            'facebook' => 'https://www.facebook.com/'.$this->external_id,
+            'facebook' => 'https://www.facebook.com/reel/'.$this->external_id,
             'tiktok' => 'https://www.tiktok.com/@me/video/'.$this->external_id,
             default => null,
         };

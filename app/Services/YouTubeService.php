@@ -3,114 +3,188 @@
 namespace App\Services;
 
 use App\Models\SocialAccount;
+use App\Services\Connect\TokenManager;
+use GuzzleHttp\Psr7\Utils;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
 
 /**
- * Uploads Shorts to YouTube via the Data API v3 using Laravel's HTTP client
- * (so it is mockable with Http::fake in tests and does not depend on the heavy
- * google/apiclient Guzzle stack). Handles access-token refresh via the stored
- * refresh token (item 7).
+ * YouTube Data API v3 videos.insert via the resumable upload protocol
+ * (developers.google.com/youtube/v3/guides/using_resumable_upload_protocol).
+ * The file is streamed from disk, never loaded into memory.
  */
 class YouTubeService
 {
-    private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
-
     private const UPLOAD_URL = 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status';
 
     /**
-     * Upload a short. Returns the YouTube video id.
+     * Step 1: start a resumable session. Returns the session URI (Location header).
      *
-     * @throws RuntimeException on any failure (message is surfaced to the UI)
+     * @param  array<int, string>  $tags
      */
-    public function uploadShort(
+    public function startSession(
+        string $accessToken,
         string $filePath,
         string $title,
         string $description,
-        SocialAccount $account,
-        string $privacyStatus = 'public',
+        array $tags,
+        string $privacyStatus,
     ): string {
-        if (! is_file($filePath)) {
-            throw new RuntimeException("Video file not found: {$filePath}");
-        }
+        $this->assertFile($filePath);
 
-        $accessToken = $this->accessTokenFor($account);
-
-        // 1. Initiate a resumable upload session.
-        $init = Http::withToken($accessToken)
-            ->withHeaders(['X-Upload-Content-Type' => 'video/*'])
+        $response = $this->send(fn () => Http::withToken($accessToken)
+            ->withHeaders([
+                'X-Upload-Content-Length' => (string) filesize($filePath),
+                'X-Upload-Content-Type' => $this->mime($filePath),
+            ])
+            ->asJson()
             ->post(self::UPLOAD_URL, [
                 'snippet' => [
                     'title' => mb_substr($title, 0, 100),
-                    'description' => $description,
-                    'tags' => ['Shorts'],
+                    'description' => mb_substr($description, 0, 5000),
+                    'tags' => array_values(array_unique(array_merge(['Shorts'], $tags))),
+                    'categoryId' => '22',
                 ],
                 'status' => [
                     'privacyStatus' => $privacyStatus,
                     'selfDeclaredMadeForKids' => false,
                 ],
-            ]);
+            ]));
 
-        if (! $init->successful()) {
-            throw new RuntimeException('YouTube init failed: '.$init->body());
+        if (! $response->successful()) {
+            throw PublishException::fromResponse('YouTube upload session failed', $response);
         }
 
-        $location = $init->header('Location');
+        $location = $response->header('Location');
         if (! $location) {
-            throw new RuntimeException('YouTube did not return an upload URL.');
+            throw PublishException::retryable('YouTube did not return an upload session URL.');
         }
 
-        // 2. Upload the bytes.
-        $uploaded = Http::withToken($accessToken)
-            ->withBody(file_get_contents($filePath), 'video/*')
-            ->put($location);
-
-        if (! $uploaded->successful()) {
-            throw new RuntimeException('YouTube upload failed: '.$uploaded->body());
-        }
-
-        $id = $uploaded->json('id');
-        if (! $id) {
-            throw new RuntimeException('YouTube upload returned no video id.');
-        }
-
-        return $id;
+        return $location;
     }
 
     /**
-     * Return a valid access token, refreshing and persisting it when expired.
+     * Step 2: send the bytes (resuming from what YouTube already has when $resume).
+     * Returns the created video resource.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws YouTubeSessionExpired when the session URI is gone (404)
      */
-    public function accessTokenFor(SocialAccount $account): string
+    public function uploadToSession(string $sessionUri, string $accessToken, string $filePath, bool $resume = false): array
     {
-        if ($account->access_token && ! $account->isExpired()) {
-            return $account->access_token;
+        $this->assertFile($filePath);
+        $size = (int) filesize($filePath);
+        $mime = $this->mime($filePath);
+        $offset = 0;
+
+        if ($resume) {
+            $status = $this->send(fn () => Http::withToken($accessToken)
+                ->withHeaders(['Content-Range' => "bytes */{$size}"])
+                ->withBody('', $mime)
+                ->put($sessionUri));
+
+            if (in_array($status->status(), [200, 201], true) && $status->json('id')) {
+                return (array) $status->json();
+            }
+            if ($status->status() === 404) {
+                throw new YouTubeSessionExpired('YouTube upload session expired; starting a new one.');
+            }
+            if ($status->status() === 308 && preg_match('/bytes=0-(\d+)/', (string) $status->header('Range'), $m)) {
+                $offset = ((int) $m[1]) + 1;
+            }
         }
 
-        if (! $account->refresh_token) {
-            throw new RuntimeException('YouTube account has no refresh token; reconnect the account.');
+        $handle = fopen($filePath, 'rb');
+        if ($offset > 0) {
+            fseek($handle, $offset);
         }
 
-        $resp = Http::asForm()->post(self::TOKEN_URL, [
-            'client_id' => config('services.google.client_id'),
-            'client_secret' => config('services.google.client_secret'),
-            'refresh_token' => $account->refresh_token,
-            'grant_type' => 'refresh_token',
-        ]);
-
-        if (! $resp->successful()) {
-            throw new RuntimeException('YouTube token refresh failed: '.$resp->body());
+        $headers = ['Content-Length' => (string) ($size - $offset)];
+        if ($offset > 0) {
+            $headers['Content-Range'] = 'bytes '.$offset.'-'.($size - 1).'/'.$size;
         }
 
-        $token = $resp->json('access_token');
-        if (! $token) {
-            throw new RuntimeException('YouTube token refresh returned no access token.');
+        $stream = Utils::streamFor($handle);
+        try {
+            $response = $this->send(fn () => Http::withToken($accessToken)
+                ->timeout(480)
+                ->withHeaders($headers)
+                ->withBody($stream, $mime)
+                ->put($sessionUri));
+        } finally {
+            $stream->close();
         }
 
-        $account->forceFill([
-            'access_token' => $token,
-            'expires_at' => now()->addSeconds((int) $resp->json('expires_in', 3500)),
-        ])->save();
+        if ($response->status() === 404) {
+            throw new YouTubeSessionExpired('YouTube upload session expired; starting a new one.');
+        }
 
-        return $token;
+        if ($response->status() === 308) {
+            throw PublishException::retryable('YouTube upload incomplete; will resume.');
+        }
+
+        if (! $response->successful()) {
+            throw PublishException::fromResponse('YouTube upload failed', $response);
+        }
+
+        if (! $response->json('id')) {
+            throw PublishException::retryable('YouTube upload returned no video id.');
+        }
+
+        return (array) $response->json();
+    }
+
+    /** Best thumbnail URL from a video resource (falls back to the standard i.ytimg URL). */
+    public function thumbnailFrom(array $video): ?string
+    {
+        $thumbs = (array) ($video['snippet']['thumbnails'] ?? []);
+        foreach (['maxres', 'standard', 'high', 'medium', 'default'] as $size) {
+            if (! empty($thumbs[$size]['url'])) {
+                return $thumbs[$size]['url'];
+            }
+        }
+
+        return isset($video['id']) ? 'https://i.ytimg.com/vi/'.$video['id'].'/hqdefault.jpg' : null;
+    }
+
+    /** One-shot upload (used by the smoke-test command). Returns the video id. */
+    public function uploadShort(
+        string $filePath,
+        string $title,
+        string $description,
+        SocialAccount $account,
+        string $privacyStatus = 'private',
+    ): string {
+        $token = app(TokenManager::class)->freshAccessToken($account);
+        $uri = $this->startSession($token, $filePath, $title, $description, [], $privacyStatus);
+
+        return (string) $this->uploadToSession($uri, $token, $filePath)['id'];
+    }
+
+    private function send(callable $call): Response
+    {
+        try {
+            return $call();
+        } catch (ConnectionException $e) {
+            throw PublishException::retryable('YouTube connection error: '.$e->getMessage());
+        }
+    }
+
+    private function assertFile(string $filePath): void
+    {
+        if (! is_file($filePath)) {
+            throw PublishException::permanent("Video file not found: {$filePath}");
+        }
+    }
+
+    private function mime(string $filePath): string
+    {
+        return match (strtolower(pathinfo($filePath, PATHINFO_EXTENSION))) {
+            'mov' => 'video/quicktime',
+            'webm' => 'video/webm',
+            default => 'video/mp4',
+        };
     }
 }

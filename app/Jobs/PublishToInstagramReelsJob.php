@@ -5,31 +5,64 @@ namespace App\Jobs;
 use App\Models\PostDistribution;
 use App\Models\SocialAccount;
 use App\Services\InstagramService;
-use App\Support\VideoResolver;
-use RuntimeException;
+use App\Services\PublishException;
 
+/** Instagram Reels: create container -> poll status_code (release) -> media_publish. */
 class PublishToInstagramReelsJob extends PublishJob
 {
-    protected function provider(): string
+    /** Meta recommends polling about once a minute. */
+    protected int $pollDelay = 60;
+
+    protected int $maxPolls = 10;
+
+    protected function platform(): string
     {
         return 'instagram';
     }
 
-    protected function publish(PostDistribution $distribution, SocialAccount $account): string
+    protected function publish(PostDistribution $distribution, SocialAccount $account, string $token): ?PublishResult
     {
         $post = $distribution->post;
-        $meta = (array) $distribution->meta;
+        $instagram = app(InstagramService::class);
+        $igUserId = $instagram->igUserIdFor($account);
 
-        $caption = $meta['caption'] ?? $post->caption ?? '';
-        if (! empty($meta['hashtags'])) {
-            $caption = trim($caption."\n\n".$meta['hashtags']);
+        $containerId = ((array) $distribution->meta)['ig_container_id'] ?? null;
+        if (! $containerId) {
+            $containerId = $instagram->createReelContainer(
+                $igUserId,
+                $this->publicVideoUrl($post),
+                mb_substr($this->caption($post, $distribution), 0, 2200),
+                $token,
+            );
+            $this->remember($distribution, ['ig_container_id' => $containerId, 'polls' => 0], PostDistribution::STATUS_PROCESSING);
         }
 
-        $publicUrl = VideoResolver::publicUrl($post);
-        if (! $publicUrl) {
-            throw new RuntimeException('Instagram needs a public HTTPS video URL; upload the video or set a public URL on the post.');
+        while (true) {
+            $status = $instagram->containerStatus($containerId, $token);
+            $code = $status['status_code'];
+
+            if ($code === 'FINISHED') {
+                break;
+            }
+
+            if (in_array($code, ['ERROR', 'EXPIRED'], true)) {
+                // A dead container cannot be reused; a retry starts a fresh one.
+                $this->forget($distribution, ['ig_container_id', 'polls']);
+                throw PublishException::permanent('Instagram could not process the video: '.($status['status'] ?: $code));
+            }
+
+            if ($this->pollAgain($distribution, $this->pollDelay)) {
+                return null;
+            }
         }
 
-        return app(InstagramService::class)->publishReel($publicUrl, $caption, $account);
+        $mediaId = $instagram->publishContainer($igUserId, $containerId, $token);
+        $info = $instagram->mediaInfo($mediaId, $token);
+
+        return new PublishResult(
+            externalId: $mediaId,
+            url: $info['permalink'],
+            thumbnail: $info['thumbnail_url'],
+        );
     }
 }

@@ -2,54 +2,41 @@
 
 namespace App\Services;
 
+use App\Jobs\PublishJob;
+use App\Jobs\PublishToFacebookReelsJob;
 use App\Jobs\PublishToInstagramReelsJob;
+use App\Jobs\PublishToTikTokJob;
 use App\Jobs\PublishToYouTubeShortsJob;
 use App\Models\Post;
 use App\Models\PostDistribution;
 use App\Models\SocialAccount;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * Orchestrates manual cross-posting: for each requested provider it upserts a
- * post_distributions row (status=queued) carrying the form options in meta, then
- * dispatches the matching publish job. Targets every connected provider (item 8);
- * providers without a publisher yet are reported with a reason.
+ * Orchestrates cross-posting: one post_distributions row per platform and one
+ * queued publish job per row. Also the single retry path (API + Filament).
  */
 class CrossPostService
 {
+    public const PLATFORMS = ['youtube', 'facebook', 'instagram', 'tiktok'];
+
     /**
-     * Provider registry. publishable=false providers are shown disabled in the UI
-     * with `reason` and listed in the deploy report.
-     *
-     * @return array<string, array{label: string, job: ?class-string, publishable: bool, reason: ?string}>
+     * @return array<string, array{label: string, job: class-string<PublishJob>, publishable: bool, reason: ?string}>
      */
     public function registry(): array
     {
         return [
-            'youtube' => [
-                'label' => 'YouTube Shorts',
-                'job' => PublishToYouTubeShortsJob::class,
-                'publishable' => true,
-                'reason' => null,
-            ],
-            'instagram' => [
-                'label' => 'Instagram Reels',
-                'job' => PublishToInstagramReelsJob::class,
-                'publishable' => true,
-                'reason' => null,
-            ],
-            'facebook' => [
-                'label' => 'Facebook Reels',
-                'job' => null,
-                'publishable' => false,
-                'reason' => 'Facebook Reels publishing needs a connected Facebook Page plus App Review for the Reels API — not enabled yet.',
-            ],
-            'tiktok' => [
-                'label' => 'TikTok',
-                'job' => null,
-                'publishable' => false,
-                'reason' => 'TikTok direct posting needs an audited Content Posting API app with the video.publish scope — not enabled yet.',
-            ],
+            'youtube' => ['label' => 'YouTube Shorts', 'job' => PublishToYouTubeShortsJob::class, 'publishable' => true, 'reason' => null],
+            'facebook' => ['label' => 'Facebook Reels', 'job' => PublishToFacebookReelsJob::class, 'publishable' => true, 'reason' => null],
+            'instagram' => ['label' => 'Instagram Reels', 'job' => PublishToInstagramReelsJob::class, 'publishable' => true, 'reason' => null],
+            'tiktok' => ['label' => 'TikTok', 'job' => PublishToTikTokJob::class, 'publishable' => true, 'reason' => null],
         ];
+    }
+
+    /** @return class-string<PublishJob>|null */
+    public function jobFor(string $platform): ?string
+    {
+        return $this->registry()[$platform]['job'] ?? null;
     }
 
     /**
@@ -59,24 +46,17 @@ class CrossPostService
      */
     public function optionsForUser(int $userId): array
     {
-        $connected = SocialAccount::query()
-            ->where('user_id', $userId)
-            ->pluck('provider')
-            ->all();
+        $connected = $this->activeAccounts($userId)->pluck('provider')->all();
 
         $out = [];
         foreach ($this->registry() as $provider => $info) {
             $isConnected = in_array($provider, $connected, true);
-            $reason = $info['reason'];
-            if (! $isConnected && ! $reason) {
-                $reason = 'Connect this account first.';
-            }
             $out[] = [
                 'provider' => $provider,
                 'label' => $info['label'],
                 'connected' => $isConnected,
                 'publishable' => $info['publishable'] && $isConnected,
-                'reason' => ($info['publishable'] && $isConnected) ? null : $reason,
+                'reason' => $isConnected ? $info['reason'] : 'Connect this account first.',
             ];
         }
 
@@ -87,31 +67,31 @@ class CrossPostService
      * Create distributions and dispatch jobs for the chosen providers.
      *
      * @param  array<int, string>  $providers
-     * @param  array<string, mixed>  $options  title, caption/description, hashtags, privacy
+     * @param  array<string, mixed>  $options  title, caption/description, hashtags
      * @return array{dispatched: array<int,string>, skipped: array<int, array{provider:string, reason:string}>}
      */
     public function dispatch(Post $post, array $providers, array $options = []): array
     {
-        $registry = $this->registry();
         $dispatched = [];
         $skipped = [];
+        $connected = $this->activeAccounts($post->user_id)->pluck('provider')->all();
 
-        foreach ($providers as $provider) {
-            $info = $registry[$provider] ?? null;
-
-            if (! $info || ! $info['publishable'] || ! $info['job']) {
-                $skipped[] = ['provider' => $provider, 'reason' => $info['reason'] ?? 'Unsupported provider.'];
+        foreach (array_unique($providers) as $provider) {
+            if (! $this->jobFor($provider)) {
+                $skipped[] = ['provider' => $provider, 'reason' => 'Unsupported provider.'];
 
                 continue;
             }
 
-            $account = SocialAccount::query()
-                ->where('user_id', $post->user_id)
-                ->where('provider', $provider)
-                ->first();
-
-            if (! $account) {
+            if (! in_array($provider, $connected, true)) {
                 $skipped[] = ['provider' => $provider, 'reason' => 'No '.$provider.' account connected.'];
+
+                continue;
+            }
+
+            $existing = PostDistribution::where('post_id', $post->id)->where('platform', $provider)->first();
+            if ($existing && ($existing->isPublished() || $existing->isProcessing())) {
+                $skipped[] = ['provider' => $provider, 'reason' => 'Already '.$existing->status.'.'];
 
                 continue;
             }
@@ -124,26 +104,78 @@ class CrossPostService
                     'error_message' => null,
                     'external_id' => null,
                     'published_at' => null,
+                    'dispatched_at' => null,
                     'meta' => $options,
                 ],
             );
 
-            $info['job']::dispatch($distribution->id);
+            $this->queue($distribution);
             $dispatched[] = $provider;
         }
 
         return ['dispatched' => $dispatched, 'skipped' => $skipped];
     }
 
-    /** Dispatch to every connected provider for the post owner (used by the TikTok flow). */
+    /** Dispatch to every connected provider for the post owner (TikTok ingest flow; never back to TikTok). */
     public function dispatchAllConnected(Post $post, array $options = []): array
     {
-        $providers = SocialAccount::query()
-            ->where('user_id', $post->user_id)
+        $providers = $this->activeAccounts($post->user_id)
             ->pluck('provider')
+            ->reject(fn ($p) => $p === 'tiktok' && $post->source !== Post::SOURCE_UPLOAD)
             ->unique()
+            ->values()
             ->all();
 
         return $this->dispatch($post, $providers, $options);
+    }
+
+    /** Push the platform job for a queued distribution and stamp dispatched_at. */
+    public function queue(PostDistribution $distribution): void
+    {
+        $job = $this->jobFor((string) $distribution->platform);
+        if (! $job) {
+            return;
+        }
+
+        $distribution->forceFill(['dispatched_at' => now()])->save();
+        $job::dispatch($distribution->id);
+    }
+
+    /**
+     * Retry a failed distribution (API + Filament share this).
+     *
+     * @throws ConflictHttpException unless the distribution is failed
+     */
+    public function retry(PostDistribution $distribution): PostDistribution
+    {
+        if (! $distribution->isFailed()) {
+            throw new ConflictHttpException('Only failed distributions can be retried.');
+        }
+
+        $meta = (array) $distribution->meta;
+        foreach (PublishJob::TRANSIENT_META as $key) {
+            unset($meta[$key]);
+        }
+
+        $distribution->forceFill([
+            'status' => PostDistribution::STATUS_QUEUED,
+            'error' => null,
+            'error_message' => null,
+            'external_id' => null,
+            'meta' => $meta,
+        ])->save();
+
+        $this->queue($distribution);
+
+        return $distribution->refresh();
+    }
+
+    /** Active accounts of a user (status defaults to active). */
+    private function activeAccounts(int $userId)
+    {
+        return SocialAccount::query()
+            ->where('user_id', $userId)
+            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'active'))
+            ->get(['id', 'provider']);
     }
 }

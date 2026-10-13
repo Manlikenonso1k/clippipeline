@@ -3,71 +3,143 @@
 namespace App\Services;
 
 use App\Models\SocialAccount;
+use App\Services\Connect\TokenManager;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
+use Illuminate\Support\Sleep;
 
 /**
- * Publishes Reels through the Instagram Graph API. Reads the IG user id captured
- * at connect time (items 4 & 11), verifies the video URL is publicly reachable,
- * then runs the create-container -> poll-until-FINISHED -> publish flow.
+ * Instagram Reels via the Instagram Graph API (Facebook Login flow, Page token):
+ * POST /{ig-user-id}/media (REELS) -> GET /{container}?fields=status_code until
+ * FINISHED -> POST /{ig-user-id}/media_publish. Meta fetches the video by URL.
  */
 class InstagramService
 {
-    private const GRAPH = 'https://graph.facebook.com/v19.0';
+    public function graph(): string
+    {
+        return 'https://graph.facebook.com/'.config('services.meta.graph_version', 'v24.0');
+    }
+
+    /** IG user id: social_accounts.external_id, falling back to meta['ig_user_id']. */
+    public function igUserIdFor(SocialAccount $account): string
+    {
+        $id = $account->external_id ?: (((array) $account->meta)['ig_user_id'] ?? null);
+        if (! $id) {
+            throw PublishException::permanent('Instagram account is missing its business user id. Reconnect the account.');
+        }
+
+        return (string) $id;
+    }
+
+    /** Create a REELS container. Returns the container (creation) id. */
+    public function createReelContainer(string $igUserId, string $videoUrl, string $caption, string $token): string
+    {
+        $response = $this->send(fn () => Http::asForm()->post($this->graph()."/{$igUserId}/media", [
+            'media_type' => 'REELS',
+            'video_url' => $videoUrl,
+            'caption' => $caption,
+            'share_to_feed' => 'true',
+            'access_token' => $token,
+        ]));
+
+        if (! $response->successful()) {
+            throw PublishException::fromResponse('Instagram container create failed', $response);
+        }
+
+        $id = $response->json('id');
+        if (! $id) {
+            throw PublishException::retryable('Instagram did not return a container id.');
+        }
+
+        return (string) $id;
+    }
 
     /**
-     * @throws RuntimeException on any failure (message surfaced to the UI)
+     * Container processing status.
+     *
+     * @return array{status_code: ?string, status: ?string}
+     */
+    public function containerStatus(string $containerId, string $token): array
+    {
+        $response = $this->send(fn () => Http::get($this->graph()."/{$containerId}", [
+            'fields' => 'status_code,status',
+            'access_token' => $token,
+        ]));
+
+        if (! $response->successful()) {
+            throw PublishException::fromResponse('Instagram container status failed', $response);
+        }
+
+        return [
+            'status_code' => $response->json('status_code'),
+            'status' => $response->json('status'),
+        ];
+    }
+
+    /** Publish a FINISHED container. Returns the IG media id. */
+    public function publishContainer(string $igUserId, string $containerId, string $token): string
+    {
+        $response = $this->send(fn () => Http::asForm()->post($this->graph()."/{$igUserId}/media_publish", [
+            'creation_id' => $containerId,
+            'access_token' => $token,
+        ]));
+
+        if (! $response->successful()) {
+            throw PublishException::fromResponse('Instagram publish failed', $response);
+        }
+
+        $id = $response->json('id');
+        if (! $id) {
+            throw PublishException::retryable('Instagram publish returned no media id.');
+        }
+
+        return (string) $id;
+    }
+
+    /**
+     * permalink + thumbnail_url of published media. Never throws (best effort).
+     *
+     * @return array{permalink: ?string, thumbnail_url: ?string}
+     */
+    public function mediaInfo(string $mediaId, string $token): array
+    {
+        try {
+            $response = Http::get($this->graph()."/{$mediaId}", [
+                'fields' => 'permalink,thumbnail_url',
+                'access_token' => $token,
+            ]);
+        } catch (\Throwable) {
+            return ['permalink' => null, 'thumbnail_url' => null];
+        }
+
+        return [
+            'permalink' => $response->successful() ? $response->json('permalink') : null,
+            'thumbnail_url' => $response->successful() ? $response->json('thumbnail_url') : null,
+        ];
+    }
+
+    /**
+     * Blocking end-to-end publish (smoke-test command only; jobs poll via release()).
      */
     public function publishReel(string $publicVideoUrl, ?string $caption, SocialAccount $account): string
     {
-        $igUserId = $account->meta['ig_user_id'] ?? null;
-        if (! $igUserId) {
-            throw new RuntimeException('Instagram account is missing its business user id. Use Reconnect (or run app:backfill-ig-ids).');
+        $token = app(TokenManager::class)->freshAccessToken($account);
+        $igUserId = $this->igUserIdFor($account);
+        $containerId = $this->createReelContainer($igUserId, $publicVideoUrl, (string) $caption, $token);
+
+        for ($i = 0; $i < 10; $i++) {
+            $status = $this->containerStatus($containerId, $token);
+            if ($status['status_code'] === 'FINISHED') {
+                return $this->publishContainer($igUserId, $containerId, $token);
+            }
+            if (in_array($status['status_code'], ['ERROR', 'EXPIRED'], true)) {
+                throw PublishException::permanent('Instagram container processing failed: '.($status['status'] ?? $status['status_code']));
+            }
+            Sleep::for(30)->seconds();
         }
 
-        $token = $account->access_token;
-        if (! $token) {
-            throw new RuntimeException('Instagram account has no access token; reconnect the account.');
-        }
-
-        $this->assertReachable($publicVideoUrl);
-
-        // 1. Create a REELS media container.
-        $create = Http::asForm()->post(self::GRAPH."/{$igUserId}/media", [
-            'media_type' => 'REELS',
-            'video_url' => $publicVideoUrl,
-            'caption' => $caption ?? '',
-            'access_token' => $token,
-        ]);
-
-        if (! $create->successful()) {
-            throw new RuntimeException('Instagram container create failed: '.$create->body());
-        }
-
-        $creationId = $create->json('id');
-        if (! $creationId) {
-            throw new RuntimeException('Instagram did not return a creation id.');
-        }
-
-        // 2. Poll until the container finishes processing.
-        $this->waitUntilFinished($creationId, $token);
-
-        // 3. Publish.
-        $publish = Http::asForm()->post(self::GRAPH."/{$igUserId}/media_publish", [
-            'creation_id' => $creationId,
-            'access_token' => $token,
-        ]);
-
-        if (! $publish->successful()) {
-            throw new RuntimeException('Instagram publish failed: '.$publish->body());
-        }
-
-        $id = $publish->json('id');
-        if (! $id) {
-            throw new RuntimeException('Instagram publish returned no media id.');
-        }
-
-        return $id;
+        throw PublishException::retryable('Instagram container did not finish processing in time.');
     }
 
     /**
@@ -80,7 +152,7 @@ class InstagramService
     public function resolveBusinessUserId(string $accessToken): ?array
     {
         // Facebook Login: find a Page that has a linked IG business account.
-        $pages = Http::get(self::GRAPH.'/me/accounts', [
+        $pages = Http::get($this->graph().'/me/accounts', [
             'fields' => 'instagram_business_account,name',
             'access_token' => $accessToken,
         ]);
@@ -95,7 +167,7 @@ class InstagramService
         }
 
         // Instagram Login (Instagram API with Instagram Login): /me?fields=user_id.
-        $me = Http::get(self::GRAPH.'/me', [
+        $me = Http::get($this->graph().'/me', [
             'fields' => 'user_id,username',
             'access_token' => $accessToken,
         ]);
@@ -107,47 +179,12 @@ class InstagramService
         return null;
     }
 
-    private function waitUntilFinished(string $creationId, string $token, int $maxAttempts = 20): void
+    private function send(callable $call): Response
     {
-        for ($i = 0; $i < $maxAttempts; $i++) {
-            $status = Http::get(self::GRAPH."/{$creationId}", [
-                'fields' => 'status_code',
-                'access_token' => $token,
-            ]);
-
-            $code = $status->json('status_code');
-
-            if ($code === 'FINISHED') {
-                return;
-            }
-
-            if ($code === 'ERROR' || $code === 'EXPIRED') {
-                throw new RuntimeException("Instagram container processing failed (status: {$code}).");
-            }
-
-            // IN_PROGRESS / PUBLISHED — wait and retry.
-            if ($i < $maxAttempts - 1) {
-                sleep(app()->runningUnitTests() ? 0 : 5);
-            }
-        }
-
-        throw new RuntimeException('Instagram container did not finish processing in time.');
-    }
-
-    private function assertReachable(string $url): void
-    {
-        if (! str_starts_with($url, 'https://')) {
-            throw new RuntimeException("Instagram requires a public HTTPS video URL; got: {$url}");
-        }
-
         try {
-            $head = Http::head($url);
-        } catch (\Throwable $e) {
-            throw new RuntimeException('Video URL is not reachable: '.$e->getMessage());
-        }
-
-        if (! $head->successful()) {
-            throw new RuntimeException("Video URL is not publicly reachable (HTTP {$head->status()}): {$url}");
+            return $call();
+        } catch (ConnectionException $e) {
+            throw PublishException::retryable('Instagram connection error: '.$e->getMessage());
         }
     }
 }
