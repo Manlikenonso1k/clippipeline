@@ -9,7 +9,11 @@ use Illuminate\Http\Request;
 
 class DeviceTokenController extends Controller
 {
-    /** Register (or refresh) an Expo push token for the authenticated user's device. */
+    /**
+     * Register (or refresh) an Expo push token for this device. Public route:
+     * works signed-out (anonymous) and attaches to the user when a bearer token
+     * is present, so the same device row is claimed on login.
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -17,10 +21,12 @@ class DeviceTokenController extends Controller
             'platform' => ['nullable', 'string', 'max:32'],
         ]);
 
+        $user = $request->user() ?? auth('sanctum')->user();
+
         DeviceToken::updateOrCreate(
             ['token' => $validated['token']],
             [
-                'user_id' => $request->user()->id,
+                'user_id' => $user?->id,
                 'platform' => $validated['platform'] ?? null,
                 'last_used_at' => now(),
             ],
