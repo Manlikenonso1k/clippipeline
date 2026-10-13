@@ -3,69 +3,65 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\PostAnalytic;
-use App\Models\PostDistribution;
+use App\Models\Post;
+use App\Services\AnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/** docs/CONTRACT.md §5 — returns AnalyticsService arrays unchanged. */
 class AnalyticsController extends Controller
 {
+    public function __construct(private readonly AnalyticsService $analytics) {}
+
     public function overview(Request $request): JsonResponse
+    {
+        return response()->json($this->analytics->overview($request->user(), $this->period($request)));
+    }
+
+    public function platforms(Request $request): JsonResponse
+    {
+        return response()->json($this->analytics->platforms($request->user(), $this->period($request)));
+    }
+
+    public function timeseries(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'period' => ['nullable', 'in:7d,30d,90d'],
+            'platform' => ['nullable', 'in:all,youtube,facebook,instagram,tiktok'],
         ]);
-        $days = (int) rtrim($validated['period'] ?? '7d', 'd');
 
-        $user = $request->user();
-        $end = now()->endOfDay();
-        $start = now()->subDays($days - 1)->startOfDay();
+        return response()->json($this->analytics->timeseries(
+            $request->user(),
+            $validated['period'] ?? '7d',
+            $validated['platform'] ?? 'all',
+        ));
+    }
 
-        $rows = PostAnalytic::query()
-            ->whereHas('post', fn ($q) => $q->where('user_id', $user->id))
-            ->whereBetween('recorded_at', [$start, $end])
-            ->get(['views', 'likes', 'comments', 'shares', 'recorded_at']);
-
-        // One entry per day, zero-filled.
-        $byDay = [];
-        for ($i = 0; $i < $days; $i++) {
-            $byDay[$start->copy()->addDays($i)->toDateString()] = 0;
-        }
-        foreach ($rows as $row) {
-            $date = $row->recorded_at->toDateString();
-            if (array_key_exists($date, $byDay)) {
-                $byDay[$date] += (int) $row->views;
-            }
-        }
-
-        $postsPublished = PostDistribution::query()
-            ->where('status', PostDistribution::STATUS_PUBLISHED)
-            ->whereHas('post', fn ($q) => $q->where('user_id', $user->id))
-            ->where(fn ($q) => $q
-                ->whereBetween('published_at', [$start, $end])
-                ->orWhere(fn ($q2) => $q2->whereNull('published_at')->whereBetween('updated_at', [$start, $end])))
-            ->distinct()
-            ->count('post_id');
-
-        $connected = $user->socialAccounts()
-            ->where('needs_attention', false)
-            ->whereNotNull('access_token')
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-            ->count();
-
-        $trend = [];
-        foreach ($byDay as $date => $views) {
-            $trend[] = ['date' => $date, 'views' => $views];
-        }
-
-        return response()->json([
-            'total_views' => (int) $rows->sum('views'),
-            'total_likes' => (int) $rows->sum('likes'),
-            'total_comments' => (int) $rows->sum('comments'),
-            'total_shares' => (int) $rows->sum('shares'),
-            'posts_published' => $postsPublished,
-            'connected_accounts' => $connected,
-            'trend' => $trend,
+    public function topPosts(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'period' => ['nullable', 'in:7d,30d,90d'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:20'],
         ]);
+
+        return response()->json($this->analytics->topPosts(
+            $request->user(),
+            $validated['period'] ?? '7d',
+            (int) ($validated['limit'] ?? 5),
+        ));
+    }
+
+    public function post(Request $request, Post $post): JsonResponse
+    {
+        if ((int) $post->user_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        return response()->json($this->analytics->post($post));
+    }
+
+    private function period(Request $request): string
+    {
+        return $request->validate(['period' => ['nullable', 'in:7d,30d,90d']])['period'] ?? '7d';
     }
 }
