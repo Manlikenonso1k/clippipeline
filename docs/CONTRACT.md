@@ -292,7 +292,7 @@ Lifetime numbers (latest snapshot) per platform plus a 30-day daily series per p
       "distribution_id": 21,
       "status": "published",
       "url": "https://www.youtube.com/watch?v=abc",
-      "captured_on": "2026-10-13",
+      "captured_on": "2026-10-13",            // null until the first snapshot exists
       "metrics": {"views":500,"likes":40,"comments":5,"shares":0,"saves":0,"watch_time_seconds":3000},
       "points": [{"date":"2026-10-12","views":100,"likes":5,"comments":1,"shares":0,"saves":0,"watch_time_seconds":400}]
     }

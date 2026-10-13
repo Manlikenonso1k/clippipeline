@@ -18,6 +18,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Sleep;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PublishJobTest extends TestCase
@@ -156,6 +157,35 @@ class PublishJobTest extends TestCase
         $dist->refresh();
         $this->assertSame('ALREADY', $dist->external_id);
         $this->assertSame(0, $dist->attempts);
+        Http::assertNothingSent();
+    }
+
+    public static function jobs(): array
+    {
+        return [
+            'youtube' => ['youtube', PublishToYouTubeShortsJob::class],
+            'instagram' => ['instagram', PublishToInstagramReelsJob::class],
+            'facebook' => ['facebook', PublishToFacebookReelsJob::class],
+            'tiktok' => ['tiktok', PublishToTikTokJob::class],
+        ];
+    }
+
+    /** A redelivered job (queue retry after a crash) must never post twice. */
+    #[DataProvider('jobs')]
+    public function test_every_job_skips_when_external_id_is_already_set(string $platform, string $jobClass): void
+    {
+        Http::fake();
+        $user = User::factory()->create();
+        $post = $this->makePost($user);
+        $this->account($user, $platform, ['external_id' => 'ACC1']);
+        $dist = $this->distribution($post, $platform, ['status' => 'uploading', 'external_id' => 'ALREADY', 'attempts' => 1]);
+
+        (new $jobClass($dist->id))->handle();
+        (new $jobClass($dist->id))->handle();
+
+        $dist->refresh();
+        $this->assertSame('ALREADY', $dist->external_id);
+        $this->assertSame(1, $dist->attempts);
         Http::assertNothingSent();
     }
 

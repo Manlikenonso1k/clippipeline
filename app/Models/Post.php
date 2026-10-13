@@ -78,7 +78,7 @@ class Post extends Model
     /** Post status derived from its distributions (docs/CONTRACT.md §1). */
     public function overallStatus(): string
     {
-        $statuses = $this->distributions->pluck('status')->map(fn ($s) => (string) $s);
+        $statuses = $this->distributions->pluck('status')->map(fn ($s) => (string) $s === 'pending' ? PostDistribution::STATUS_QUEUED : (string) $s);
 
         if ($statuses->isEmpty()) {
             return 'processing';

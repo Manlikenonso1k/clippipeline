@@ -135,7 +135,7 @@ class AnalyticsService
             $platforms[] = [
                 'platform' => $distribution->platform,
                 'distribution_id' => $distribution->id,
-                'status' => $distribution->status,
+                'status' => $distribution->status === 'pending' ? PostDistribution::STATUS_QUEUED : (string) $distribution->status,
                 'url' => $distribution->externalUrl(),
                 'captured_on' => $snap ? substr((string) $snap->captured_on, 0, 10) : null,
                 'metrics' => $metrics,

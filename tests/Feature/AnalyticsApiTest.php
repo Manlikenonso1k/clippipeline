@@ -205,6 +205,43 @@ class AnalyticsApiTest extends TestCase
         $this->getJson("/api/posts/{$other->id}/analytics")->assertStatus(404)->assertJson(['message' => 'Not found.']);
     }
 
+    public function test_every_id_endpoint_404s_for_another_users_rows_and_missing_ids(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $foreignPost = $this->makePost($other);
+        $foreignDist = $this->dist($foreignPost, 'youtube', null, 'failed');
+        $foreignAccount = $this->account($other, 'youtube');
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/posts/{$foreignPost->id}")->assertNotFound()->assertJsonPath('message', 'Not found.');
+        $this->getJson("/api/posts/{$foreignPost->id}/analytics")->assertNotFound()->assertJsonPath('message', 'Not found.');
+        $this->getJson('/api/posts/999999/analytics')->assertNotFound()->assertJsonPath('message', 'Not found.');
+        $this->postJson("/api/distributions/{$foreignDist->id}/retry")->assertNotFound()->assertJsonPath('message', 'Not found.');
+        $this->deleteJson("/api/social-accounts/{$foreignAccount->id}")->assertNotFound()->assertJsonPath('message', 'Not found.');
+
+        $this->assertSame('failed', $foreignDist->fresh()->status);
+        $this->assertDatabaseHas('social_accounts', ['id' => $foreignAccount->id]);
+        $this->getJson('/api/social-accounts')->assertOk()->assertExactJson([]);
+        $this->getJson('/api/posts')->assertOk()->assertExactJson([]);
+    }
+
+    public function test_legacy_pending_distribution_is_reported_as_queued(): void
+    {
+        $user = User::factory()->create();
+        $post = $this->makePost($user);
+        $this->dist($post, 'youtube', null, 'pending');
+
+        Sanctum::actingAs($user);
+        $this->getJson("/api/posts/{$post->id}")->assertOk()
+            ->assertJsonPath('status', 'processing')
+            ->assertJsonPath('distributions.0.status', 'queued');
+        $this->getJson("/api/posts/{$post->id}/analytics")->assertOk()
+            ->assertJsonPath('platforms.0.status', 'queued')
+            ->assertJsonPath('platforms.0.captured_on', null);
+    }
+
     public function test_top_posts_ranked_by_views_gained(): void
     {
         $user = User::factory()->create();

@@ -51,9 +51,10 @@ class AnalyticsController extends Controller
         ));
     }
 
-    public function post(Request $request, Post $post): JsonResponse
+    public function post(Request $request, string $post): JsonResponse
     {
-        if ((int) $post->user_id !== (int) $request->user()->id) {
+        $post = Post::query()->whereKey($post)->where('user_id', $request->user()->id)->first();
+        if (! $post) {
             return response()->json(['message' => 'Not found.'], 404);
         }
 
