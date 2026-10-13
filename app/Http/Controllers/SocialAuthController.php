@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SocialAccount;
 use App\Models\User;
-use App\Services\InstagramService;
+use App\Services\Connect\ConnectService;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -63,122 +63,53 @@ class SocialAuthController
         return redirect()->to('/admin');
     }
 
-    public function redirectIntegration(Request $request, $provider)
+    /** Web (session) entry: same flow as the API with platform=web. Accepts youtube|meta|instagram|tiktok. */
+    public function redirectIntegration(Request $request, ConnectService $connect, $provider)
     {
-        if (! in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
+        $provider = ConnectService::normalize((string) $provider);
+        if (! $provider) {
             abort(404);
         }
 
-        if ($provider === 'youtube') {
-            return Socialite::driver('google')
-                ->scopes(['https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/yt-analytics.readonly'])
-                ->with(['access_type' => 'offline', 'prompt' => 'consent'])
-                ->redirectUrl(route('integrations.callback', ['provider' => 'youtube']))
-                ->stateless()
-                ->redirect();
-        }
-
-        if ($provider === 'instagram') {
-            return Socialite::driver('facebook')
-                ->scopes(['pages_show_list', 'pages_read_engagement', 'instagram_basic', 'instagram_content_publish'])
-                ->stateless()
-                ->redirect();
-        }
-
-        if ($provider === 'tiktok') {
-            return Socialite::driver('tiktok')->stateless()->redirect();
-        }
-
-        abort(400);
-    }
-
-    public function handleIntegrationCallback(Request $request, $provider)
-    {
-        if (! in_array($provider, ['youtube', 'instagram', 'tiktok'])) {
-            abort(404);
-        }
-
-        $driver = null;
-        if ($provider === 'youtube') {
-            $driver = 'google';
-        } elseif ($provider === 'instagram') {
-            $driver = 'facebook';
-        } elseif ($provider === 'tiktok') {
-            $driver = 'tiktok';
-        }
-
-        $socialite = Socialite::driver($driver)->stateless();
-
-        // Google validates that the token-exchange redirect_uri matches the one used
-        // to start the flow, so re-apply the same integrations callback here.
-        if ($provider === 'youtube') {
-            $socialite = $socialite->redirectUrl(route('integrations.callback', ['provider' => 'youtube']));
-        }
-
-        $socialUser = $socialite->user();
-
-        $user = Auth::user();
+        $user = $request->user();
         if (! $user) {
-            return redirect('/')->withErrors('You must be logged in to connect integrations.');
+            return redirect()->route('login');
         }
 
-        // For Instagram, resolve the business user id now (needed to publish Reels).
-        $meta = [];
-        $needsAttention = false;
-        if ($provider === 'instagram' && ($socialUser->token ?? null)) {
-            $resolved = app(InstagramService::class)->resolveBusinessUserId($socialUser->token);
-            if ($resolved) {
-                $meta['ig_user_id'] = $resolved['ig_user_id'];
-                $meta['login_flow'] = $resolved['flow'];
-            } else {
-                $needsAttention = true;
-            }
-        }
-
-        try {
-            DB::table('social_accounts')->updateOrInsert(
-                [
-                    'user_id' => $user->id,
-                    'provider' => $provider,
-                ],
-                [
-                    // platform_name has its own unique(user_id, platform_name) index and
-                    // defaults to 'tiktok'; set it to the real provider or the second
-                    // platform you connect collides with the first and the insert fails.
-                    'platform_name' => $provider,
-                    'access_token' => $socialUser->token ?? null,
-                    'refresh_token' => $socialUser->refreshToken ?? null,
-                    'expires_at' => isset($socialUser->expiresIn) ? now()->addSeconds($socialUser->expiresIn) : null,
-                    'meta' => $meta ? json_encode($meta) : null,
-                    'needs_attention' => $needsAttention,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-        } catch (\Exception $e) {
-            Log::error('Integration callback store failed: '.$e->getMessage());
-
-            return redirect()->route('filament.admin.pages.connect-accounts')->withErrors('Failed to store integration credentials.');
-        }
-
-        if ($needsAttention) {
-            return redirect()->route('filament.admin.pages.connect-accounts')
-                ->withErrors('Instagram connected, but no Business/Creator account was found. Link an Instagram Business account to a Facebook Page, then use Reconnect.');
-        }
-
-        try {
-            DB::table('users')->where('id', $user->id)->update([
-                'last_ip' => $request->ip(),
-                'updated_at' => now(),
-            ]);
-        } catch (\Exception $e) {
-            // ignore
-        }
-
-        return redirect()->route('filament.admin.pages.connect-accounts')->with('status', ucfirst($provider).' connected');
+        return redirect()->away($connect->start($user, $provider, 'web')['auth_url']);
     }
 
-    // Disconnect integration
+    /**
+     * OAuth callback for youtube|instagram(meta)|tiktok. Runs without a session
+     * (mobile): the user comes from the signed state, the session only for legacy links.
+     */
+    public function handleIntegrationCallback(Request $request, ConnectService $connect, $provider)
+    {
+        if (! array_key_exists($provider, ConnectService::CALLBACK_SEGMENTS)) {
+            abort(404);
+        }
+
+        $result = $connect->handleCallback($request, $provider);
+
+        if ($result['platform'] === 'mobile') {
+            $query = ['provider' => $result['provider'], 'status' => $result['ok'] ? 'ok' : 'error'];
+            if (! $result['ok']) {
+                $query['message'] = $result['message'];
+            }
+
+            $base = (string) config('services.mobile.connect_redirect');
+
+            return redirect()->away($base.(str_contains($base, '?') ? '&' : '?').http_build_query($query, '', '&', PHP_QUERY_RFC3986));
+        }
+
+        $redirect = redirect()->route('filament.admin.pages.connect-accounts');
+
+        return $result['ok']
+            ? $redirect->with('status', $result['message'])
+            : $redirect->withErrors($result['message']);
+    }
+
+    // Disconnect integration (web). Meta rows share one token, so both go together.
     public function disconnect(Request $request, $provider)
     {
         $user = Auth::user();
@@ -186,8 +117,12 @@ class SocialAuthController
             return redirect()->route('filament.admin.pages.connect-accounts');
         }
 
-        DB::table('social_accounts')->where(['user_id' => $user->id, 'provider' => $provider])->delete();
+        $normalized = ConnectService::normalize((string) $provider);
+        $providers = $normalized === 'meta' ? ['facebook', 'instagram'] : [(string) $provider];
 
-        return redirect()->route('filament.admin.pages.connect-accounts')->with('status', ucfirst($provider).' disconnected');
+        SocialAccount::where('user_id', $user->id)->whereIn('provider', $providers)->delete();
+
+        return redirect()->route('filament.admin.pages.connect-accounts')
+            ->with('status', ConnectService::label($normalized ?? (string) $provider).' disconnected');
     }
 }

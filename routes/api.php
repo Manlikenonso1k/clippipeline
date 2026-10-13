@@ -27,7 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- agent:connect ---
     Route::get('/connect/{provider}/start', [ConnectController::class, 'start']);
     Route::get('/social-accounts', [SocialAccountController::class, 'index']);
-    Route::delete('/social-accounts/{socialAccount}', [SocialAccountController::class, 'destroy']);
+    Route::delete('/social-accounts/{id}', [SocialAccountController::class, 'destroy']);
     // --- end agent:connect ---
 
     // --- agent:publish ---

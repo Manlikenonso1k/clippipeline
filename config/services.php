@@ -54,26 +54,28 @@ return [
     ],
 
     // --- agent:connect ---
-    // Pin the Graph API version used by every Meta call (verify against current docs).
+    // Pin the Graph API version used by every Meta call. v26.0 = latest stable (released 2026-07-29).
     'meta' => [
-        'graph_version' => env('META_GRAPH_VERSION', 'v24.0'),
+        'graph_version' => env('META_GRAPH_VERSION') ?: 'v26.0',
     ],
 
     // Deep link the OAuth callback sends mobile users back to.
     'mobile' => [
-        'connect_redirect' => env('MOBILE_CONNECT_REDIRECT', 'clippipelinemobile://connect'),
+        'connect_redirect' => env('MOBILE_CONNECT_REDIRECT') ?: 'clippipelinemobile://connect',
     ],
     // --- end agent:connect ---
 
     // --- agent:publish ---
     'youtube' => [
         // Unaudited API projects force uploads to private; keep it explicit.
-        'privacy_status' => env('YOUTUBE_PRIVACY_STATUS', 'private'),
+        'privacy_status' => env('YOUTUBE_PRIVACY_STATUS') ?: 'private',
     ],
 
     'tiktok_posting' => [
         // Unaudited TikTok apps may only post SELF_ONLY.
-        'privacy_level' => env('TIKTOK_PRIVACY_LEVEL', 'SELF_ONLY'),
+        'privacy_level' => env('TIKTOK_PRIVACY_LEVEL') ?: 'SELF_ONLY',
+        // FILE_UPLOAD (default, no domain verification) or PULL_FROM_URL (needs a verified URL prefix).
+        'source' => env('TIKTOK_POST_SOURCE') ?: 'FILE_UPLOAD',
     ],
     // --- end agent:publish ---
 

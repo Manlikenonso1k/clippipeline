@@ -49,9 +49,13 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->to(ConnectAccounts::getUrl());
     })->name('integrations.index');
     Route::get('/integrations/redirect/{provider}', [SocialAuthController::class, 'redirectIntegration'])->name('integrations.redirect');
-    Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'handleIntegrationCallback'])->name('integrations.callback');
     Route::post('/integrations/disconnect/{provider}', [SocialAuthController::class, 'disconnect'])->name('integrations.disconnect');
 });
+// No auth middleware: mobile callbacks carry no web session. The user is
+// resolved from the encrypted, signed `state` (session only for legacy links).
+Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'handleIntegrationCallback'])
+    ->whereIn('provider', ['youtube', 'instagram', 'tiktok'])
+    ->name('integrations.callback');
 // --- end agent:connect ---
 
 // --- agent:web ---
