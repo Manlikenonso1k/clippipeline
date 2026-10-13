@@ -53,6 +53,30 @@ return [
         'redirect' => env('TIKTOK_REDIRECT'),
     ],
 
+    // --- agent:connect ---
+    // Pin the Graph API version used by every Meta call (verify against current docs).
+    'meta' => [
+        'graph_version' => env('META_GRAPH_VERSION', 'v24.0'),
+    ],
+
+    // Deep link the OAuth callback sends mobile users back to.
+    'mobile' => [
+        'connect_redirect' => env('MOBILE_CONNECT_REDIRECT', 'clippipelinemobile://connect'),
+    ],
+    // --- end agent:connect ---
+
+    // --- agent:publish ---
+    'youtube' => [
+        // Unaudited API projects force uploads to private; keep it explicit.
+        'privacy_status' => env('YOUTUBE_PRIVACY_STATUS', 'private'),
+    ],
+
+    'tiktok_posting' => [
+        // Unaudited TikTok apps may only post SELF_ONLY.
+        'privacy_level' => env('TIKTOK_PRIVACY_LEVEL', 'SELF_ONLY'),
+    ],
+    // --- end agent:publish ---
+
     'tiktok_scraper' => [
         'url' => env('TIKTOK_SCRAPER_URL'),
         'key' => env('TIKTOK_SCRAPER_KEY'),

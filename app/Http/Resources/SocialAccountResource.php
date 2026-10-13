@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\SocialAccount;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\SocialAccount */
+/** @mixin SocialAccount */
 class SocialAccountResource extends JsonResource
 {
     public function toArray(Request $request): array

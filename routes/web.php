@@ -41,7 +41,9 @@ Route::get('/auth/youtube', function () {
     return redirect()->route('integrations.redirect', ['provider' => 'youtube']);
 })->name('auth.youtube');
 
-// Integrations (connect third-party APIs)
+// --- agent:connect ---
+// Integrations (connect third-party APIs). Callback URLs are registered on
+// production — never change their paths (see docs/CONTRACT.md §3).
 Route::middleware(['auth'])->group(function () {
     Route::get('/integrations', function () {
         return redirect()->to(ConnectAccounts::getUrl());
@@ -50,6 +52,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'handleIntegrationCallback'])->name('integrations.callback');
     Route::post('/integrations/disconnect/{provider}', [SocialAuthController::class, 'disconnect'])->name('integrations.disconnect');
 });
+// --- end agent:connect ---
+
+// --- agent:web ---
+// --- end agent:web ---
 
 // Temporary debug routes (local testing only) - expose integration redirects without auth
 if (app()->environment('local')) {

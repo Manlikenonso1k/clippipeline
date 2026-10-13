@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ExpoPushService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -48,7 +49,7 @@ class PostDistribution extends Model
             }
 
             $platform = ucfirst((string) $distribution->platform);
-            $push = app(\App\Services\ExpoPushService::class);
+            $push = app(ExpoPushService::class);
 
             if ($distribution->status === self::STATUS_FAILED) {
                 $push->sendToUser(
