@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SocialAccountResource;
 use App\Models\SocialAccount;
+use App\Services\Connect\DisconnectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,22 +25,13 @@ class SocialAccountController extends Controller
     }
 
     /** DELETE /api/social-accounts/{id} — Meta rows (facebook + instagram) are removed together. */
-    public function destroy(Request $request, string $id): JsonResponse
+    public function destroy(Request $request, string $id, DisconnectService $disconnect): JsonResponse
     {
-        $userId = $request->user()->id;
-        $account = ctype_digit($id) ? SocialAccount::where('user_id', $userId)->find((int) $id) : null;
+        $ids = ctype_digit($id) ? $disconnect->disconnect($request->user(), (int) $id) : null;
 
-        if (! $account) {
+        if ($ids === null) {
             return response()->json(['message' => 'Not found.'], 404);
         }
-
-        $query = SocialAccount::where('user_id', $userId);
-        $query = $account->connectProvider() === 'meta'
-            ? $query->whereIn('provider', ['facebook', 'instagram'])
-            : $query->whereKey($account->id);
-
-        $ids = $query->orderBy('id')->pluck('id')->all();
-        SocialAccount::whereIn('id', $ids)->delete();
 
         return response()->json(['deleted_ids' => $ids]);
     }

@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\Posts\Tables;
 
 use App\Models\Post;
+use App\Models\PostDistribution;
 use App\Services\CrossPostService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class PostsTable
@@ -24,21 +26,33 @@ class PostsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('distributions'))
+            ->defaultSort('created_at', 'desc')
+            // Refresh every 5s while any of the user's distributions is still publishing.
+            ->poll(fn (): ?string => self::hasInFlight() ? '5s' : null)
             ->columns([
                 TextColumn::make('title')
                     ->searchable()
                     ->limit(40),
-                TextColumn::make('user.name')
-                    ->label('Owner')
-                    ->searchable(),
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->state(fn (Post $record): string => $record->overallStatus())
+                    ->badge()
+                    ->color(fn (string $state): string => self::statusColor($state)),
                 TextColumn::make('distributions_summary')
-                    ->label('Distribution')
+                    ->label('Platforms')
                     ->state(fn (Post $record): string => $record->distributions
                         ->map(fn ($d) => ucfirst($d->platform).': '.$d->status)
-                        ->implode('  â€¢  ') ?: 'â€”')
+                        ->implode('  •  ') ?: '—')
                     ->wrap(),
+                TextColumn::make('scheduled_at')
+                    ->dateTime()
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('published_at')
                     ->dateTime()
+                    ->placeholder('—')
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('created_at')
@@ -48,7 +62,7 @@ class PostsTable
             ])
             ->recordActions([
                 self::crossPostAction(),
-                EditAction::make(),
+                ViewAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -56,6 +70,26 @@ class PostsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function statusColor(string $status): string
+    {
+        return match ($status) {
+            'published' => 'success',
+            'failed' => 'danger',
+            'partial' => 'warning',
+            'scheduled' => 'info',
+            default => 'gray',
+        };
+    }
+
+    /** True while any of the signed-in user's distributions is queued/uploading/processing. */
+    protected static function hasInFlight(): bool
+    {
+        return PostDistribution::query()
+            ->whereIn('status', PostDistribution::IN_FLIGHT)
+            ->whereHas('post', fn (Builder $q) => $q->where('user_id', auth()->id()))
+            ->exists();
     }
 
     /** Shared modal form fields, built from the post owner's connected providers. */

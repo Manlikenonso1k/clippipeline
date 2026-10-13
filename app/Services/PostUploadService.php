@@ -84,6 +84,26 @@ class PostUploadService
         return $post;
     }
 
+    /**
+     * Accept hashtags[] or one comma/space separated string; store without '#'.
+     *
+     * @return array<int, string>
+     */
+    public static function normalizeHashtags(mixed $value): array
+    {
+        $tags = [];
+        foreach ((array) $value as $item) {
+            foreach (preg_split('/[\s,]+/', (string) $item) ?: [] as $part) {
+                $tag = ltrim(trim($part), '#');
+                if ($tag !== '' && ! in_array($tag, $tags, true)) {
+                    $tags[] = $tag;
+                }
+            }
+        }
+
+        return $tags;
+    }
+
     /** Absolute HTTPS URL for a public-disk path. */
     public function publicUrl(string $path): string
     {

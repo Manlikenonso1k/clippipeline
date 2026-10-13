@@ -2,53 +2,54 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Post;
-use Filament\Tables;
+use App\Filament\Resources\Posts\PostResource;
+use App\Filament\Widgets\Concerns\UsesAnalyticsPeriod;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 
+/** Posts ranked by views gained in the period (AnalyticsService::topPosts, §5.5). */
 class TopPostsTable extends TableWidget
 {
-    protected static ?string $heading = 'Top Posts';
+    use UsesAnalyticsPeriod;
 
-    protected static ?int $sort = 3;
+    public const LIMIT = 10;
+
+    protected static ?int $sort = 4;
 
     protected int|string|array $columnSpan = 'full';
 
-    protected function getTableQuery(): Builder
+    /** The exact array GET /api/analytics/top-posts?limit=10 returns for this user and period. */
+    public function topPosts(): array
     {
-        $userId = Auth::id() ?? 0;
-
-        return Post::query()
-            ->where('posts.user_id', $userId)
-            ->leftJoin('post_analytics', 'post_analytics.post_id', '=', 'posts.id')
-            ->select('posts.id', 'posts.tiktok_id', 'posts.caption')
-            ->selectRaw('COALESCE(SUM(post_analytics.views), 0) as total_views')
-            ->selectRaw('COALESCE(SUM(post_analytics.likes), 0) as total_likes')
-            ->selectRaw('COALESCE(SUM(post_analytics.comments), 0) as total_comments')
-            ->groupBy('posts.id', 'posts.tiktok_id', 'posts.caption')
-            ->orderByDesc('total_views');
+        return $this->analytics()->topPosts($this->user(), $this->period(), self::LIMIT);
     }
 
-    protected function getTableColumns(): array
+    public function table(Table $table): Table
     {
-        return [
-            Tables\Columns\TextColumn::make('tiktok_id')
-                ->label('TikTok ID')
-                ->searchable(),
-            Tables\Columns\TextColumn::make('caption')
-                ->limit(50)
-                ->wrap(),
-            Tables\Columns\TextColumn::make('total_views')
-                ->label('Views')
-                ->numeric(),
-            Tables\Columns\TextColumn::make('total_likes')
-                ->label('Likes')
-                ->numeric(),
-            Tables\Columns\TextColumn::make('total_comments')
-                ->label('Comments')
-                ->numeric(),
-        ];
+        return $table
+            ->heading('Top posts')
+            ->description('Ranked by views gained in the selected period.')
+            ->records(fn (): array => collect($this->topPosts())
+                ->mapWithKeys(fn (array $row) => [$row['post_id'] => [
+                    'post_id' => $row['post_id'],
+                    'title' => $row['title'] ?? '—',
+                    'platforms' => implode(', ', array_map('ucfirst', $row['platforms'])),
+                    ...$row['totals'],
+                ]])
+                ->all())
+            ->columns([
+                TextColumn::make('title')
+                    ->limit(50)
+                    ->url(fn (array $record): string => PostResource::getUrl('view', ['record' => $record['post_id']])),
+                TextColumn::make('platforms'),
+                TextColumn::make('views')->numeric(),
+                TextColumn::make('likes')->numeric(),
+                TextColumn::make('comments')->numeric(),
+                TextColumn::make('shares')->numeric(),
+                TextColumn::make('saves')->numeric(),
+            ])
+            ->emptyStateHeading('No views in this period yet')
+            ->paginated(false);
     }
 }

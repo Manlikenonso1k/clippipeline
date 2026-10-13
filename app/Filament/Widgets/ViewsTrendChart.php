@@ -2,65 +2,76 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Widgets\Concerns\UsesAnalyticsPeriod;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
+/** Daily points for the period (AnalyticsService::timeseries, §5.3). */
 class ViewsTrendChart extends ChartWidget
 {
-    protected ?string $heading = 'Views (last 14 days)';
+    use UsesAnalyticsPeriod;
+
+    protected ?string $heading = 'Daily views & engagement';
 
     protected static ?int $sort = 2;
 
     protected int|string|array $columnSpan = 'full';
 
+    protected ?string $maxHeight = '320px';
+
+    public ?string $filter = 'all';
+
+    protected function getFilters(): ?array
+    {
+        return [
+            'all' => 'All platforms',
+            'youtube' => 'YouTube',
+            'facebook' => 'Facebook',
+            'instagram' => 'Instagram',
+            'tiktok' => 'TikTok',
+        ];
+    }
+
+    /** The exact array GET /api/analytics/timeseries returns for this user, period and platform. */
+    public function timeseries(): array
+    {
+        return $this->analytics()->timeseries($this->user(), $this->period(), (string) ($this->filter ?: 'all'));
+    }
+
     protected function getData(): array
     {
-        $userId = Auth::id();
-
-        if (! $userId) {
-            return [
-                'datasets' => [],
-                'labels' => [],
-            ];
-        }
-
-        $start = now()->subDays(13)->startOfDay();
-
-        $rows = DB::table('post_analytics')
-            ->join('posts', 'posts.id', '=', 'post_analytics.post_id')
-            ->where('posts.user_id', $userId)
-            ->whereDate('post_analytics.recorded_at', '>=', $start->toDateString())
-            ->selectRaw('DATE(post_analytics.recorded_at) as date, SUM(views) as views')
-            ->groupBy(DB::raw('DATE(post_analytics.recorded_at)'))
-            ->orderBy(DB::raw('DATE(post_analytics.recorded_at)'))
-            ->get();
-
-        $viewsByDate = $rows->pluck('views', 'date');
-        $labels = [];
-        $data = [];
-
-        for ($i = 0; $i < 14; $i++) {
-            $day = $start->copy()->addDays($i);
-            $labels[] = $day->format('M j');
-            $data[] = (int) ($viewsByDate[$day->toDateString()] ?? 0);
-        }
+        $points = $this->timeseries()['points'];
 
         return [
             'datasets' => [
                 [
                     'label' => 'Views',
-                    'data' => $data,
-                    'borderColor' => '#ff6b35',
-                    'backgroundColor' => 'rgba(255, 107, 53, 0.2)',
+                    'data' => array_column($points, 'views'),
+                    'borderColor' => '#f59e0b',
+                    'backgroundColor' => 'rgba(245, 158, 11, 0.15)',
+                    'fill' => true,
+                    'tension' => 0.3,
+                ],
+                [
+                    'label' => 'Likes + comments + shares',
+                    'data' => array_map(fn (array $p) => $p['likes'] + $p['comments'] + $p['shares'], $points),
+                    'borderColor' => '#3b82f6',
+                    'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                    'tension' => 0.3,
                 ],
             ],
-            'labels' => $labels,
+            'labels' => array_column($points, 'date'),
         ];
     }
 
     protected function getType(): string
     {
         return 'line';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'scales' => ['y' => ['beginAtZero' => true, 'ticks' => ['precision' => 0]]],
+        ];
     }
 }

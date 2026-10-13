@@ -87,7 +87,7 @@ class PostController extends Controller
             $request->file('video'),
             $validated['title'],
             $validated['caption'] ?? null,
-            $this->normalizeHashtags($validated['hashtags'] ?? null),
+            PostUploadService::normalizeHashtags($validated['hashtags'] ?? null),
             $validated['platforms'],
             ! empty($validated['scheduled_at']) ? Carbon::parse($validated['scheduled_at'])->utc() : null,
         );
@@ -96,25 +96,5 @@ class PostController extends Controller
             (new PostResource($post->load(self::RELATIONS)))->resolve(),
             201,
         );
-    }
-
-    /**
-     * Accept hashtags[] or one comma/space separated string; store without '#'.
-     *
-     * @return array<int, string>
-     */
-    private function normalizeHashtags(mixed $value): array
-    {
-        $tags = [];
-        foreach ((array) $value as $item) {
-            foreach (preg_split('/[\s,]+/', (string) $item) ?: [] as $part) {
-                $tag = ltrim(trim($part), '#');
-                if ($tag !== '' && ! in_array($tag, $tags, true)) {
-                    $tags[] = $tag;
-                }
-            }
-        }
-
-        return $tags;
     }
 }
