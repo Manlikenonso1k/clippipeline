@@ -74,7 +74,7 @@ type MetricsChange = { [K in keyof Metrics]: number | null };
 {
   "provider": "meta",
   "platform": "mobile",
-  "auth_url": "https://www.facebook.com/v24.0/dialog/oauth?client_id=...&state=...",
+  "auth_url": "https://www.facebook.com/v26.0/dialog/oauth?client_id=...&state=...",
   "expires_at": "2026-10-13T09:10:00+00:00"
 }
 ```
