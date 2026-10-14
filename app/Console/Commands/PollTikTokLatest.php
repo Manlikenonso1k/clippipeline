@@ -28,6 +28,11 @@ class PollTikTokLatest extends Command
         $users = DB::table('users')->whereNotNull('settings')->get();
 
         foreach ($users as $user) {
+            // auto_sync=false opts the user out of scheduled pulls (CONTRACT §10).
+            if (property_exists($user, 'auto_sync') && $user->auto_sync !== null && ! $user->auto_sync) {
+                continue;
+            }
+
             $settings = json_decode($user->settings, true) ?? [];
             if (empty($settings['tiktok_username'])) {
                 continue;

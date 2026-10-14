@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Auth\LoginBroker;
 use App\Services\Connect\ConnectService;
+use App\Services\Connect\DisconnectService;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,10 +25,16 @@ class SocialAuthController
         return Socialite::driver('google')->stateless()->redirect();
     }
 
-    public function handleProviderCallback(Request $request, $provider)
+    public function handleProviderCallback(Request $request, LoginBroker $broker, $provider)
     {
         if ($provider !== 'google') {
             abort(404);
+        }
+
+        // Mobile sign-in broker (CONTRACT §9): the web flow is stateless, so a
+        // purpose=login state can only come from GET /api/auth/google/start.
+        if ($broker->owns($request)) {
+            return redirect()->away($broker->complete($request, 'google'));
         }
 
         $socialUser = Socialite::driver('google')->stateless()->user();
@@ -60,7 +67,8 @@ class SocialAuthController
             // don't break the login flow on IP save errors
         }
 
-        return redirect()->to('/admin');
+        // /delete-account sets an intended URL; otherwise the dashboard.
+        return redirect()->intended('/admin');
     }
 
     /** Web (session) entry: same flow as the API with platform=web. Accepts youtube|meta|instagram|tiktok. */
@@ -83,10 +91,16 @@ class SocialAuthController
      * OAuth callback for youtube|instagram(meta)|tiktok. Runs without a session
      * (mobile): the user comes from the signed state, the session only for legacy links.
      */
-    public function handleIntegrationCallback(Request $request, ConnectService $connect, $provider)
+    public function handleIntegrationCallback(Request $request, ConnectService $connect, LoginBroker $broker, $provider)
     {
         if (! array_key_exists($provider, ConnectService::CALLBACK_SEGMENTS)) {
             abort(404);
+        }
+
+        // agent:backend — sign-in broker (state.purpose=login, CONTRACT §9).
+        $loginProvider = ['instagram' => 'facebook', 'tiktok' => 'tiktok'][$provider] ?? null;
+        if ($loginProvider && $broker->owns($request)) {
+            return redirect()->away($broker->complete($request, $loginProvider));
         }
 
         $result = $connect->handleCallback($request, $provider);
@@ -110,7 +124,7 @@ class SocialAuthController
     }
 
     // Disconnect integration (web). Meta rows share one token, so both go together.
-    public function disconnect(Request $request, $provider)
+    public function disconnect(Request $request, DisconnectService $disconnects, $provider)
     {
         $user = Auth::user();
         if (! $user) {
@@ -118,9 +132,9 @@ class SocialAuthController
         }
 
         $normalized = ConnectService::normalize((string) $provider);
-        $providers = $normalized === 'meta' ? ['facebook', 'instagram'] : [(string) $provider];
 
-        SocialAccount::where('user_id', $user->id)->whereIn('provider', $providers)->delete();
+        // Revokes at the platform, then deletes the rows (A-01).
+        $disconnects->disconnectProvider($user, (string) $provider);
 
         return redirect()->route('filament.admin.pages.connect-accounts')
             ->with('status', ConnectService::label($normalized ?? (string) $provider).' disconnected');

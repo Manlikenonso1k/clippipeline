@@ -26,6 +26,7 @@ class PostDistributionResource extends JsonResource
             'error_message' => $status === PostDistribution::STATUS_FAILED ? ($this->error_message ?? $this->error) : $this->error_message,
             'privacy' => $this->privacy,
             'attempts' => (int) $this->attempts,
+            'options' => $this->options ?: null,
             'published_at' => $this->published_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

@@ -57,6 +57,8 @@ return [
     // Pin the Graph API version used by every Meta call. v26.0 = latest stable (released 2026-07-29).
     'meta' => [
         'graph_version' => env('META_GRAPH_VERSION') ?: 'v26.0',
+        // agent:backend — Connect scopes; drop business_management via META_SCOPES for personally owned Pages.
+        'scopes' => array_values(array_filter(array_map('trim', explode(',', (string) (env('META_SCOPES') ?: 'pages_show_list,pages_read_engagement,pages_manage_posts,read_insights,business_management,instagram_basic,instagram_content_publish,instagram_manage_insights'))))),
     ],
 
     // Deep link the OAuth callback sends mobile users back to.
@@ -78,6 +80,14 @@ return [
         'source' => env('TIKTOK_POST_SOURCE') ?: 'FILE_UPLOAD',
     ],
     // --- end agent:publish ---
+
+    // --- agent:backend ---
+    // TikTok webhook signing (TikTok-Signature, HMAC-SHA256 with the client secret unless overridden).
+    'tiktok_webhook' => [
+        'secret' => env('TIKTOK_WEBHOOK_SECRET'),
+        'tolerance_seconds' => 300,
+    ],
+    // --- end agent:backend ---
 
     'tiktok_scraper' => [
         'url' => env('TIKTOK_SCRAPER_URL'),

@@ -38,6 +38,7 @@ class Post extends Model
         'original_url',
         'downloaded_at',
         'meta',
+        'video_duration_seconds',
     ];
 
     protected $casts = [
@@ -46,6 +47,7 @@ class Post extends Model
         'downloaded_at' => 'datetime',
         'hashtags' => 'array',
         'meta' => 'array',
+        'video_duration_seconds' => 'float',
     ];
 
     public function user(): BelongsTo

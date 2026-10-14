@@ -388,6 +388,23 @@ class AnalyticsService
             ->count('post_id');
     }
 
+    /**
+     * Latest snapshot row per distribution id (used by the CSV export).
+     *
+     * @param  array<int,int>  $distributionIds
+     * @return array<int, object>
+     */
+    public function latestSnapshotsFor(array $distributionIds): array
+    {
+        return $this->latestSnapshots($distributionIds);
+    }
+
+    /** @return array<string,int> Metrics of one snapshot row */
+    public function metricsFromRow(object $row): array
+    {
+        return $this->metricsOf($row);
+    }
+
     /** @param  array<int,int>  $distributionIds */
     private function latestSnapshots(array $distributionIds): array
     {

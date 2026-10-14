@@ -32,7 +32,14 @@ class PostApiTest extends TestCase
         config(['app.url' => 'https://clip.test']);
         Storage::fake('public');
         Queue::fake();
-        Http::fake(['clip.test/*' => fn () => Http::response('', $this->headStatus)]);
+        Http::fake([
+            'clip.test/*' => fn () => Http::response('', $this->headStatus),
+            'open.tiktokapis.com/v2/post/publish/creator_info/query/' => Http::response([
+                'data' => ['creator_nickname' => 'Nonso', 'privacy_level_options' => ['PUBLIC_TO_EVERYONE', 'SELF_ONLY'], 'max_video_post_duration_sec' => 600],
+                'error' => ['code' => 'ok'],
+            ]),
+        ]);
+        Http::preventStrayRequests();
 
         $this->user = User::factory()->create();
         foreach (['youtube', 'instagram', 'tiktok'] as $p) {
@@ -54,6 +61,7 @@ class PostApiTest extends TestCase
             'caption' => 'Look at this',
             'hashtags' => '#fyp, clips  #fyp',
             'platforms' => ['youtube', 'instagram'],
+            'platform_options' => ['youtube' => ['privacy_status' => 'public', 'guidelines_confirmed' => '1']],
         ], ['Accept' => 'application/json']);
 
         $response->assertCreated()
@@ -79,7 +87,7 @@ class PostApiTest extends TestCase
         Queue::assertNotPushed(PublishToTikTokJob::class);
 
         $this->assertSame(
-            ['id', 'post_id', 'platform', 'status', 'external_id', 'url', 'error_message', 'privacy', 'attempts', 'published_at', 'updated_at'],
+            ['id', 'post_id', 'platform', 'status', 'external_id', 'url', 'error_message', 'privacy', 'attempts', 'options', 'published_at', 'updated_at'],
             array_keys($response->json('distributions.0')),
         );
     }
@@ -123,6 +131,7 @@ class PostApiTest extends TestCase
 
         $this->post('/api/posts', [
             'video' => $this->video(), 'title' => 'x', 'platforms' => ['youtube'],
+            'platform_options' => ['youtube' => ['privacy_status' => 'private', 'guidelines_confirmed' => '1']],
         ], ['Accept' => 'application/json'])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['video']);
@@ -139,6 +148,10 @@ class PostApiTest extends TestCase
         $this->post('/api/posts', [
             'video' => $this->video(), 'title' => 'Later', 'platforms' => ['youtube', 'tiktok'],
             'scheduled_at' => $when->toIso8601String(),
+            'platform_options' => [
+                'youtube' => ['privacy_status' => 'unlisted', 'guidelines_confirmed' => '1'],
+                'tiktok' => ['privacy_level' => 'SELF_ONLY', 'music_consent' => '1'],
+            ],
         ], ['Accept' => 'application/json'])
             ->assertCreated()
             ->assertJsonPath('status', 'scheduled');

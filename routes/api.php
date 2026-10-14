@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\AuthBrokerController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\ConnectController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\DistributionController;
+use App\Http\Controllers\Api\MeController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\SocialAccountController;
+use App\Http\Controllers\Api\TikTokController;
 use Illuminate\Support\Facades\Route;
 
 // Contract: docs/CONTRACT.md. Agents edit only inside their own marked block.
@@ -22,6 +27,11 @@ Route::post('/device-tokens', [DeviceTokenController::class, 'store']);
 
 // --- agent:backend (public) ---
 // Mobile sign-in broker, Meta/TikTok compliance callbacks (docs/CONTRACT.md §9, §15).
+Route::get('/auth/{provider}/start', [AuthBrokerController::class, 'start'])->whereIn('provider', ['google', 'facebook', 'tiktok']);
+Route::post('/auth/exchange', [AuthBrokerController::class, 'exchange'])->middleware('throttle:20,1');
+Route::post('/meta/data-deletion', [ComplianceController::class, 'metaDataDeletion']);
+Route::post('/meta/deauthorize', [ComplianceController::class, 'metaDeauthorize']);
+Route::post('/webhooks/tiktok', [ComplianceController::class, 'tiktokWebhook']);
 // --- end agent:backend (public) ---
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -51,5 +61,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- agent:backend ---
     // Me/preferences/account deletion, notifications, delete post, creator-info, export (CONTRACT §10–14).
+    Route::patch('/me', [MeController::class, 'update']);
+    Route::delete('/me', [MeController::class, 'destroy']);
+    Route::get('/me/preferences', [MeController::class, 'preferences']);
+    Route::patch('/me/preferences', [MeController::class, 'updatePreferences']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
+    Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+    Route::get('/tiktok/creator-info', [TikTokController::class, 'creatorInfo']);
+    Route::get('/analytics/export', [AnalyticsController::class, 'export']);
     // --- end agent:backend ---
 });

@@ -15,8 +15,22 @@ class ExpoPushService
 {
     private const ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
+    /**
+     * Store the in-app notification (always, CONTRACT §11), then push unless the
+     * user turned notifications off (notifications_enabled=false).
+     */
     public function sendToUser(User $user, string $title, string $body, array $data = [], string $channelId = 'alerts'): void
     {
+        try {
+            app(NotificationFeed::class)->store($user, $title, $body, $data);
+        } catch (\Throwable $e) {
+            Log::warning('notification store failed: '.$e->getMessage());
+        }
+
+        if ($user->notifications_enabled === false) {
+            return;
+        }
+
         $tokens = $user->deviceTokens()->pluck('token')->all();
         $this->send($tokens, $title, $body, $data, $channelId);
     }

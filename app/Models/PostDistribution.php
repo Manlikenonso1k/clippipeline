@@ -22,10 +22,12 @@ class PostDistribution extends Model
         'attempts',
         'privacy',
         'dispatched_at',
+        'options',
     ];
 
     protected $casts = [
         'meta' => 'array',
+        'options' => 'array',
         'published_at' => 'datetime',
         'dispatched_at' => 'datetime',
         'attempts' => 'integer',

@@ -41,8 +41,8 @@ class YouTubeService
             ->asJson()
             ->post(self::UPLOAD_URL, [
                 'snippet' => [
-                    'title' => mb_substr($title, 0, 100),
-                    'description' => mb_substr($description, 0, 5000),
+                    'title' => mb_substr(str_replace(['<', '>'], '', $title), 0, 100), // P-02: no angle brackets
+                    'description' => mb_strcut(str_replace(['<', '>'], '', $description), 0, 5000), // 5000 bytes
                     'tags' => array_values(array_unique(array_merge(['Shorts'], $tags))),
                     'categoryId' => '22',
                 ],

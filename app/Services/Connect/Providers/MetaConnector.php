@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
  */
 class MetaConnector extends BaseConnector
 {
+    /** Default scopes; the live list comes from config('services.meta.scopes') (META_SCOPES). */
     public const SCOPES = [
         'pages_show_list',
         'pages_read_engagement',
@@ -34,6 +35,14 @@ class MetaConnector extends BaseConnector
 
     /** Set by the last connect() when the IG row could not be linked. */
     public ?string $warning = null;
+
+    /** @return array<int, string> */
+    public static function scopes(): array
+    {
+        $configured = (array) config('services.meta.scopes', []);
+
+        return $configured !== [] ? array_values($configured) : self::SCOPES;
+    }
 
     public static function graph(string $path = ''): string
     {
@@ -57,7 +66,7 @@ class MetaConnector extends BaseConnector
             'redirect_uri' => $this->redirectUri(),
             'state' => $state,
             'response_type' => 'code',
-            'scope' => implode(',', self::SCOPES),
+            'scope' => implode(',', self::scopes()),
         ]);
     }
 
@@ -100,6 +109,15 @@ class MetaConnector extends BaseConnector
         }
 
         $longToken = (string) $long->json('access_token');
+
+        // App-scoped user id: needed to revoke (A-01) and to match Meta deletion callbacks (C-06/C-07).
+        $fbUserId = null;
+        try {
+            $me = Http::get(self::graph('me'), ['fields' => 'id', 'access_token' => $longToken]);
+            $fbUserId = $me->successful() && is_scalar($me->json('id')) ? (string) $me->json('id') : null;
+        } catch (ConnectionException) {
+            // non-fatal
+        }
 
         $pages = Http::get(self::graph('me/accounts'), [
             'fields' => self::PAGE_FIELDS,
@@ -144,6 +162,7 @@ class MetaConnector extends BaseConnector
                 'page_id' => (string) $page['id'],
                 'page_name' => $page['name'] ?? null,
                 'login_flow' => 'facebook',
+                'fb_user_id' => $fbUserId,
                 'pages' => $pagesMeta,
                 'validated_at' => now()->toIso8601String(),
             ],
@@ -160,6 +179,7 @@ class MetaConnector extends BaseConnector
                     'ig_user_id' => (string) $ig['id'],
                     'page_id' => (string) $page['id'],
                     'login_flow' => 'facebook',
+                    'fb_user_id' => $fbUserId,
                     'validated_at' => now()->toIso8601String(),
                 ],
             ]);
@@ -175,7 +195,7 @@ class MetaConnector extends BaseConnector
                 'status' => SocialAccount::STATUS_ERROR,
                 'last_error' => $this->warning,
                 'needs_attention' => true,
-                'meta' => ['ig_user_id' => null, 'page_id' => (string) $page['id'], 'login_flow' => 'facebook'],
+                'meta' => ['ig_user_id' => null, 'page_id' => (string) $page['id'], 'login_flow' => 'facebook', 'fb_user_id' => $fbUserId],
             ]);
         }
 

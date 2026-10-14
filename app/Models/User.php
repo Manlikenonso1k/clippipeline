@@ -14,7 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'google_id', 'facebook_id', 'tiktok_id', 'avatar', 'profile', 'is_admin'])]
+#[Fillable(['name', 'email', 'password', 'google_id', 'facebook_id', 'tiktok_id', 'avatar', 'profile', 'is_admin', 'notifications_enabled', 'auto_sync', 'default_platforms', 'default_hashtags'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -38,6 +38,11 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'settings' => 'array',
             'is_admin' => 'boolean',
+            'notifications_enabled' => 'boolean',
+            'auto_sync' => 'boolean',
+            'default_platforms' => 'array',
+            'default_hashtags' => 'array',
+            'deletion_requested_at' => 'datetime',
         ];
     }
 

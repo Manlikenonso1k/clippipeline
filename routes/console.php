@@ -31,3 +31,9 @@ Schedule::command('accounts:refresh-tokens')->hourly()->withoutOverlapping();
 Schedule::command('analytics:sync')->everyThreeHours()->withoutOverlapping();
 Schedule::command('analytics:sync --recent')->everyTenMinutes()->withoutOverlapping();
 // --- end agent:analytics ---
+
+// --- agent:backend ---
+// Retention (COMPLIANCE A-02..A-05): daily authorization re-check, 30-day purge of
+// still-unauthorized accounts, 36-month snapshot prune, unfinished deletions re-queued.
+Schedule::command('accounts:retention')->dailyAt('03:30')->withoutOverlapping();
+// --- end agent:backend ---

@@ -30,10 +30,16 @@ class TikTokPublishService
             ->post(self::BASE.'/post/publish/creator_info/query/', (object) []));
     }
 
-    /** The configured privacy level, if this creator allows it. */
-    public function choosePrivacy(array $creatorInfo): string
+    /**
+     * The user's chosen privacy level (else the configured default), if this creator
+     * allows it. Forced to SELF_ONLY while the app is not audited (COMPLIANCE T-08).
+     */
+    public function choosePrivacy(array $creatorInfo, ?string $requested = null): string
     {
-        $wanted = (string) config('services.tiktok_posting.privacy_level', 'SELF_ONLY');
+        $wanted = $requested ?: (string) config('services.tiktok_posting.privacy_level', 'SELF_ONLY');
+        if (! config('clippipeline.tiktok_audited')) {
+            $wanted = 'SELF_ONLY';
+        }
         $options = (array) ($creatorInfo['privacy_level_options'] ?? []);
 
         if ($options === [] || in_array($wanted, $options, true)) {

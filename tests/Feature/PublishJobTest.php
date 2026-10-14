@@ -411,7 +411,8 @@ class PublishJobTest extends TestCase
 
     public function test_tiktok_rejects_a_privacy_level_the_creator_cannot_use(): void
     {
-        config(['services.tiktok_posting.privacy_level' => 'PUBLIC_TO_EVERYONE']);
+        // Audited app: the configured level is used (unaudited forces SELF_ONLY).
+        config(['services.tiktok_posting.privacy_level' => 'PUBLIC_TO_EVERYONE', 'clippipeline.tiktok_audited' => true]);
         Http::fake([
             'open.tiktokapis.com/v2/post/publish/creator_info/query/' => Http::response([
                 'data' => ['privacy_level_options' => ['SELF_ONLY']], 'error' => ['code' => 'ok'],

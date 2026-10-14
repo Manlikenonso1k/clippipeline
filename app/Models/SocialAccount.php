@@ -53,6 +53,8 @@ class SocialAccount extends Model
         'refresh_token' => 'encrypted',
         'expires_at' => 'datetime',
         'last_synced_at' => 'datetime',
+        'last_authorized_check_at' => 'datetime',
+        'reauth_required_at' => 'datetime',
         'follower_count' => 'integer',
         'meta' => 'array',
         'needs_attention' => 'boolean',

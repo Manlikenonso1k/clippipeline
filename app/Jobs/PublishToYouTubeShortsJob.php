@@ -20,7 +20,11 @@ class PublishToYouTubeShortsJob extends PublishJob
         $post = $distribution->post;
         $youtube = app(YouTubeService::class);
         $path = $this->localVideoPath($post);
-        $privacy = (string) config('services.youtube.privacy_status', 'private');
+        // The user's choice (P-04); forced private while the YouTube audit is pending.
+        $privacy = (string) (((array) ($distribution->options ?? []))['privacy_status'] ?? config('services.youtube.privacy_status', 'private'));
+        if (! config('clippipeline.youtube_audited') || ! in_array($privacy, ['public', 'private', 'unlisted'], true)) {
+            $privacy = 'private';
+        }
 
         $title = $this->title($post, $distribution);
         if (! str_contains(mb_strtolower($title), '#shorts')) {

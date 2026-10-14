@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SocialAccountResource;
 use App\Models\User;
+use App\Services\Account\MeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -166,19 +167,10 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request): JsonResponse
+    /** Full `Me` (CONTRACT §2 fields + §10 plan/sync/preferences/flags). */
+    public function me(Request $request, MeService $me): JsonResponse
     {
-        $user = $request->user();
-
-        return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar' => $user->avatar,
-            ],
-            'server_time' => now()->toIso8601String(),
-        ]);
+        return response()->json($me->present($request->user()));
     }
 
     public function socialAccounts(Request $request): JsonResponse

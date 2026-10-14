@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Post;
 use App\Models\PostDistribution;
 use App\Models\User;
+use App\Services\Publishing\PublishRules;
 use Carbon\CarbonInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -21,11 +22,15 @@ use Throwable;
  */
 class PostUploadService
 {
-    public function __construct(private CrossPostService $crossPost) {}
+    public function __construct(private CrossPostService $crossPost, private PublishRules $rules) {}
 
     /**
      * @param  array<int, string>  $platforms
      * @param  array<int, string>  $hashtags  without '#'
+     * @param  array<string, mixed>  $platformOptions  platform_options input (CONTRACT §12)
+     * @param  ?float  $clientDurationSeconds  client-measured duration; the MP4 header wins when readable
+     *
+     * @throws ValidationException per-platform option/duration/cap errors (P-02/P-03/T-09)
      */
     public function create(
         User $user,
@@ -35,7 +40,19 @@ class PostUploadService
         array $hashtags,
         array $platforms,
         ?CarbonInterface $scheduledAt,
+        array $platformOptions = [],
+        ?float $clientDurationSeconds = null,
     ): Post {
+        $checked = $this->rules->validate(
+            $user,
+            $video,
+            $platforms,
+            $platformOptions,
+            $clientDurationSeconds,
+            $caption,
+            implode(' ', array_map(fn ($t) => '#'.$t, $hashtags)),
+        );
+
         $extension = strtolower($video->getClientOriginalExtension() ?: $video->guessExtension() ?: 'mp4');
         $path = $video->storeAs('videos/'.now()->format('Y/m'), Str::uuid().'.'.$extension, 'public');
         if (! $path) {
@@ -51,7 +68,7 @@ class PostUploadService
             throw $e;
         }
 
-        $post = DB::transaction(function () use ($user, $title, $caption, $hashtags, $url, $path, $scheduledAt, $platforms) {
+        $post = DB::transaction(function () use ($user, $title, $caption, $hashtags, $url, $path, $scheduledAt, $platforms, $checked) {
             $post = Post::create([
                 'user_id' => $user->id,
                 'title' => $title,
@@ -61,6 +78,7 @@ class PostUploadService
                 'video_path' => $path,
                 'source' => Post::SOURCE_UPLOAD,
                 'scheduled_at' => $scheduledAt,
+                'video_duration_seconds' => $checked['duration'],
             ]);
 
             foreach (array_values(array_unique($platforms)) as $platform) {
@@ -69,6 +87,7 @@ class PostUploadService
                     'platform' => $platform,
                     'status' => PostDistribution::STATUS_QUEUED,
                     'attempts' => 0,
+                    'options' => $checked['options'][$platform] ?? null,
                 ]);
             }
 

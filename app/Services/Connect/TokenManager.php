@@ -98,6 +98,9 @@ class TokenManager
         $account->forceFill([
             'status' => $healthy ? SocialAccount::STATUS_ACTIVE : SocialAccount::STATUS_ERROR,
             'last_error' => $healthy ? null : $account->last_error,
+            // A successful refresh/validation counts as the authorization re-check (A-04).
+            'last_authorized_check_at' => now(),
+            'reauth_required_at' => null,
         ])->save();
     }
 
@@ -116,9 +119,10 @@ class TokenManager
             : collect([$account]);
 
         foreach ($rows as $row) {
-            $row->forceFill($values)->save();
+            // Start the 30-day "still unauthorized" purge clock once (A-03).
+            $row->forceFill($values + ['reauth_required_at' => $row->reauth_required_at ?? now()])->save();
         }
-        $account->forceFill($values);
+        $account->forceFill($values + ['reauth_required_at' => $account->reauth_required_at ?? now()]);
 
         if (! $wasFlagged && $account->user) {
             try {

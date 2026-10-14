@@ -27,15 +27,22 @@ class PublishToTikTokJob extends PublishJob
 
         $publishId = ((array) $distribution->meta)['tiktok_publish_id'] ?? null;
         if (! $publishId) {
-            $privacy = $tiktok->choosePrivacy($tiktok->creatorInfo($token));
+            $options = (array) ($distribution->options ?? []);
+            $creator = $tiktok->creatorInfo($token);
+            $privacy = $tiktok->choosePrivacy($creator, $options['privacy_level'] ?? null);
 
             $title = trim($this->title($post, $distribution)."\n".$this->caption($post, $distribution));
+            // The user's choices from the TikTok form (T-02..T-10). Interactions default
+            // off and stay off when the creator disabled them.
             $postInfo = [
                 'title' => mb_substr($title, 0, 2200),
                 'privacy_level' => $privacy,
-                'disable_duet' => false,
-                'disable_comment' => false,
-                'disable_stitch' => false,
+                'disable_duet' => (bool) ($options['disable_duet'] ?? true) || (bool) ($creator['duet_disabled'] ?? false),
+                'disable_comment' => (bool) ($options['disable_comment'] ?? true) || (bool) ($creator['comment_disabled'] ?? false),
+                'disable_stitch' => (bool) ($options['disable_stitch'] ?? true) || (bool) ($creator['stitch_disabled'] ?? false),
+                'brand_organic_toggle' => (bool) ($options['brand_organic_toggle'] ?? false),
+                'brand_content_toggle' => (bool) ($options['brand_content_toggle'] ?? false),
+                'is_aigc' => (bool) ($options['is_aigc'] ?? false),
             ];
 
             $pull = strtoupper((string) config('services.tiktok_posting.source', 'FILE_UPLOAD')) === 'PULL_FROM_URL';

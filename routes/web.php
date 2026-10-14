@@ -2,6 +2,7 @@
 
 use App\Filament\Pages\ConnectAccounts;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +61,11 @@ Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'h
 
 // --- agent:backend ---
 // Public compliance pages: /privacy /terms /data-deletion /data-deletion/status /delete-account (CONTRACT §15).
+Route::view('/data-deletion', 'legal.data-deletion')->name('data-deletion');
+Route::get('/data-deletion/status', [LegalController::class, 'deletionStatus'])->name('data-deletion.status');
+Route::view('/delete-account', 'legal.delete-account')->name('delete-account');
+Route::get('/delete-account/sign-in', [LegalController::class, 'deleteAccountSignIn'])->name('delete-account.sign-in');
+Route::post('/delete-account', [LegalController::class, 'deleteAccount'])->middleware('auth')->name('delete-account.destroy');
 // --- end agent:backend ---
 
 // --- agent:web ---

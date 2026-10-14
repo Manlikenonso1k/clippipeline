@@ -8,6 +8,7 @@ use App\Models\PostAnalytic;
 use App\Models\PostDistribution;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Account\PreferencesService;
 use App\Services\Connect\TokenManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -50,8 +51,12 @@ class AnalyticsSync
         $stats = ['distributions' => 0, 'snapshots' => 0, 'accounts' => 0, 'followers' => 0, 'errors' => 0];
         $today = now('UTC')->toDateString();
 
+        // Scheduled (all-user) runs skip users who turned auto_sync off (CONTRACT §10).
+        $skipUsers = $user ? [] : PreferencesService::autoSyncDisabledUserIds();
+
         $distributions = $this->distributionsQuery($user, $recent)->with('post:id,user_id')->get()
-            ->filter(fn (PostDistribution $d) => $d->post && isset($this->fetchers[$d->platform]));
+            ->filter(fn (PostDistribution $d) => $d->post && isset($this->fetchers[$d->platform])
+                && ! in_array($d->post->user_id, $skipUsers, true));
         $stats['distributions'] = $distributions->count();
 
         foreach ($distributions->groupBy(fn ($d) => $d->post->user_id.'|'.$d->platform) as $key => $group) {
@@ -90,6 +95,7 @@ class AnalyticsSync
         if (! $recent) {
             $accounts = SocialAccount::query()
                 ->when($user, fn ($q) => $q->where('user_id', $user->id))
+                ->when($skipUsers, fn ($q) => $q->whereNotIn('user_id', $skipUsers))
                 ->whereIn('provider', array_keys($this->fetchers))
                 ->get();
 

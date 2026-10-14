@@ -21,7 +21,8 @@ class TikTokConnector extends BaseConnector
 
     public const USER_URL = 'https://open.tiktokapis.com/v2/user/info/';
 
-    public const SCOPES = ['user.info.basic', 'video.list', 'video.publish', 'video.upload'];
+    /** COMPLIANCE lead decision: Direct Post only, so no video.upload. */
+    public const SCOPES = ['user.info.basic', 'user.info.stats', 'video.publish', 'video.list'];
 
     /** Fields available under user.info.basic (follower_count needs user.info.stats). */
     public const USER_FIELDS = 'open_id,union_id,avatar_url,display_name';

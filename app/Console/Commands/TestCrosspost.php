@@ -73,6 +73,11 @@ class TestCrosspost extends Command
                 ['clippipeline'],
                 $platforms,
                 now()->addYears(10),
+                // Explicit, safe per-platform options (CONTRACT §12): private / SELF_ONLY.
+                [
+                    'youtube' => ['privacy_status' => 'private', 'guidelines_confirmed' => '1'],
+                    'tiktok' => ['privacy_level' => 'SELF_ONLY', 'music_consent' => '1'],
+                ],
             );
         } catch (ValidationException $e) {
             $this->error('Upload rejected: '.implode(' ', $e->validator->errors()->all()));

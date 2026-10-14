@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Services\Analytics\ExportService;
 use App\Services\AnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /** docs/CONTRACT.md §5 — returns AnalyticsService arrays unchanged. */
 class AnalyticsController extends Controller
@@ -59,6 +61,17 @@ class AnalyticsController extends Controller
         }
 
         return response()->json($this->analytics->post($post));
+    }
+
+    /** CONTRACT §14 CSV export. */
+    public function export(Request $request, ExportService $export): Response
+    {
+        $period = $this->period($request);
+
+        return response($export->csv($request->user(), $period), 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.ExportService::filename($period).'"',
+        ]);
     }
 
     private function period(Request $request): string
