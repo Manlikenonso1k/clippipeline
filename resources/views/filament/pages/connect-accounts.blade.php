@@ -28,6 +28,20 @@
                 </x-slot>
 
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="font-size: 0.875rem; display: flex; flex-direction: column; gap: 0.35rem;" data-rationale="{{ $card['provider'] }}">
+                        <p>{{ $card['rationale'] }}</p>
+                        @if ($card['provider'] === 'youtube')
+                            <p>By connecting YouTube you agree to be bound by the YouTube Terms of Service.</p>
+                        @endif
+                        @if (count($card['links']))
+                            <p style="display: flex; flex-wrap: wrap; gap: 0.25rem 1rem;">
+                                @foreach ($card['links'] as $link)
+                                    <x-filament::link :href="$link['url']" target="_blank" rel="noopener" size="sm">{{ $link['label'] }}</x-filament::link>
+                                @endforeach
+                            </p>
+                        @endif
+                    </div>
+
                     @foreach ($card['rows'] as $row)
                         <div wire:key="row-{{ $row['platform'] }}" data-platform="{{ $row['platform'] }}" style="display: flex; flex-direction: column; gap: 0.35rem;">
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
@@ -49,8 +63,10 @@
                                     <dt>Last synced</dt><dd>{{ $row['last_synced_at']?->diffForHumans() ?? '—' }}</dd>
                                 </dl>
 
-                                @if ($row['error'])
-                                    <p style="font-size: 0.875rem; color: rgb(220 38 38);">{{ $row['error'] }}</p>
+                                @if ($row['status'] === 'error')
+                                    <x-filament::callout color="danger" icon="heroicon-o-exclamation-triangle" heading="This account has an error" :description="$row['error'] ?: 'Reconnect to keep publishing.'" />
+                                @elseif ($row['status'] === 'needs_reauth')
+                                    <x-filament::callout color="warning" icon="heroicon-o-arrow-path" heading="Reconnect needed" :description="$row['error'] ?: 'Access expired or was removed. Press Reconnect.'" />
                                 @endif
 
                                 <div>

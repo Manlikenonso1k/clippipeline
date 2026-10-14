@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Filament\Pages\ConnectAccounts;
 use App\Models\SocialAccount;
 use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -72,5 +74,38 @@ class FilamentConnectAccountsTest extends TestCase
         $this->assertDatabaseMissing('social_accounts', ['id' => $ig->id]);
         $this->assertDatabaseHas('social_accounts', ['id' => $yt->id]);
         $this->assertDatabaseHas('social_accounts', ['id' => $other->id]);
+    }
+
+    public function test_rationale_youtube_tos_and_revoke_explanation_are_shown(): void
+    {
+        $this->get(ConnectAccounts::getUrl())
+            ->assertOk()
+            ->assertSeeText(ConnectAccounts::RATIONALE['youtube'])
+            ->assertSeeText(ConnectAccounts::RATIONALE['meta'])
+            ->assertSeeText(ConnectAccounts::RATIONALE['tiktok'])
+            ->assertSeeText('YouTube Terms of Service')
+            ->assertSee('https://www.youtube.com/t/terms', false)
+            ->assertSee(url('/privacy'), false)
+            ->assertSee(url('/terms'), false);
+
+        $this->assertStringContainsString('revokes', ConnectAccounts::DISCONNECT_EXPLANATION);
+
+        $yt = SocialAccount::factory()->for($this->user)->platform('youtube')->create();
+        Livewire::test(ConnectAccounts::class)
+            ->assertActionExists(
+                TestAction::make('disconnect')->arguments(['account' => $yt->id, 'label' => 'YouTube']),
+                fn (Action $action): bool => $action->getModalDescription() === ConnectAccounts::DISCONNECT_EXPLANATION,
+            );
+    }
+
+    public function test_error_account_shows_its_error_text(): void
+    {
+        SocialAccount::factory()->for($this->user)->platform('youtube')
+            ->create(['status' => 'error', 'last_error' => 'quotaExceeded on channel']);
+
+        $this->get(ConnectAccounts::getUrl())
+            ->assertOk()
+            ->assertSeeText('This account has an error')
+            ->assertSeeText('quotaExceeded on channel');
     }
 }

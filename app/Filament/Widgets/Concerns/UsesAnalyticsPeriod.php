@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Services\AnalyticsService;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
-/** Dashboard widgets read the period (7d/30d/90d) from the dashboard filter form. */
+/** Dashboard / Insights widgets read the period (7d/30d/90d) and platform from the page filter form. */
 trait UsesAnalyticsPeriod
 {
     use InteractsWithPageFilters;
@@ -16,6 +16,14 @@ trait UsesAnalyticsPeriod
         $period = (string) ($this->pageFilters['period'] ?? '7d');
 
         return array_key_exists($period, AnalyticsService::PERIODS) ? $period : '7d';
+    }
+
+    /** Platform filter (Insights page); 'all' when absent or unknown. */
+    protected function platform(): string
+    {
+        $platform = (string) ($this->pageFilters['platform'] ?? 'all');
+
+        return in_array($platform, AnalyticsService::PLATFORMS, true) ? $platform : 'all';
     }
 
     protected function analytics(): AnalyticsService

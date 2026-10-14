@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\AnalyticsOverview;
 use App\Filament\Widgets\PlatformBreakdown;
+use App\Filament\Widgets\SyncStatus;
 use App\Filament\Widgets\TopPostsTable;
 use App\Filament\Widgets\ViewsTrendChart;
 use App\Models\AccountFollowerSnapshot;
@@ -12,6 +14,7 @@ use App\Models\PostAnalytic;
 use App\Models\PostDistribution;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Account\MeService;
 use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -160,6 +163,43 @@ class FilamentDashboardTest extends TestCase
 
     public function test_dashboard_page_renders(): void
     {
+        $this->get('/admin')->assertOk()
+            ->assertSeeText('Home')
+            ->assertSeeText('Privacy')
+            ->assertSeeText('ClipPipeline is not affiliated with TikTok, Meta or YouTube.');
+    }
+
+    public function test_home_defaults_to_7d(): void
+    {
+        Livewire::test(Dashboard::class)->assertSet('filters.period', '7d');
+    }
+
+    public function test_sync_status_matches_me(): void
+    {
+        $me = app(MeService::class)->present($this->user);
+        $api = $this->getJson('/api/me')->assertOk()->json();
+        if (isset($api['sync'])) {
+            $this->assertEquals($api['sync'], $me['sync']);
+        }
+
+        $widget = Livewire::test(SyncStatus::class);
+        $this->assertEquals($me['sync'], $widget->instance()->sync());
+        // TikTok needs reauth in the seed → "attention".
+        $this->assertSame('attention', $me['sync']['status']);
+        $widget->assertSeeText('Needs attention');
+    }
+
+    public function test_navigation_matches_the_app_tabs(): void
+    {
         $this->get('/admin')->assertOk();
+
+        $labels = collect(Filament::getNavigation())
+            ->flatMap(fn ($group) => $group->getItems())
+            ->sortBy(fn ($item) => $item->getSort())
+            ->map(fn ($item) => $item->getLabel())
+            ->values()
+            ->all();
+
+        $this->assertSame(['Home', 'Posts', 'Connect', 'Insights', 'Profile'], array_slice($labels, 0, 5));
     }
 }

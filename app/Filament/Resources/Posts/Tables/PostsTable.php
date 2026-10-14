@@ -4,25 +4,34 @@ namespace App\Filament\Resources\Posts\Tables;
 
 use App\Models\Post;
 use App\Models\PostDistribution;
-use App\Services\CrossPostService;
+use App\Services\PostDeletionService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
+/** Posts list (GET /api/posts): search on title/caption, platform filter, delete via PostDeletionService. */
 class PostsTable
 {
+    /** Shown on every delete confirm (PARITY P5). */
+    public const DELETE_NOTICE = 'This deletes the post, its stored video and its analytics from ClipPipeline. It does not delete anything already published on YouTube, Facebook, Instagram or TikTok.';
+
+    public const CANCEL_NOTICE = 'The post will not be published. It is removed from ClipPipeline together with its stored video.';
+
+    public const PLATFORM_OPTIONS = [
+        'youtube' => 'YouTube',
+        'facebook' => 'Facebook',
+        'instagram' => 'Instagram',
+        'tiktok' => 'TikTok',
+    ];
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -32,7 +41,8 @@ class PostsTable
             ->poll(fn (): ?string => self::hasInFlight() ? '5s' : null)
             ->columns([
                 TextColumn::make('title')
-                    ->searchable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => self::search($query, $search))
+                    ->description(fn (Post $record): ?string => $record->caption ? str($record->caption)->limit(60)->toString() : null)
                     ->limit(40),
                 TextColumn::make('status')
                     ->label('Status')
@@ -42,17 +52,17 @@ class PostsTable
                 TextColumn::make('distributions_summary')
                     ->label('Platforms')
                     ->state(fn (Post $record): string => $record->distributions
-                        ->map(fn ($d) => ucfirst($d->platform).': '.$d->status)
-                        ->implode('  •  ') ?: '—')
+                        ->map(fn ($d) => (self::PLATFORM_OPTIONS[$d->platform] ?? ucfirst($d->platform)).': '.$d->status)
+                        ->implode(' Â· ') ?: 'â€”')
                     ->wrap(),
                 TextColumn::make('scheduled_at')
                     ->dateTime()
-                    ->placeholder('—')
+                    ->placeholder('â€”')
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('published_at')
                     ->dateTime()
-                    ->placeholder('—')
+                    ->placeholder('â€”')
                     ->sortable()
                     ->toggleable(),
                 TextColumn::make('created_at')
@@ -60,16 +70,85 @@ class PostsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->filters([
+                // Same as GET /api/posts?platform= : posts with a distribution on that platform.
+                SelectFilter::make('platform')
+                    ->label('Platform')
+                    ->options(self::PLATFORM_OPTIONS)
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->whereHas('distributions', fn (Builder $q) => $q->where('platform', $data['value']))
+                        : $query),
+            ])
             ->recordActions([
-                self::crossPostAction(),
                 ViewAction::make(),
+                self::cancelScheduledAction(),
+                self::deleteAction(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    self::crossPostBulkAction(),
-                    DeleteBulkAction::make(),
+                    BulkAction::make('delete')
+                        ->label('Delete selected')
+                        ->icon(Heroicon::OutlinedTrash)
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Delete selected posts?')
+                        ->modalDescription(self::DELETE_NOTICE)
+                        ->action(function (Collection $records, PostDeletionService $deletion): void {
+                            $records->each(fn (Post $post) => $deletion->delete($post));
+
+                            Notification::make()->title($records->count().' post(s) deleted')->success()->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
+    }
+
+    /** Title or caption, case-insensitive (GET /api/posts?q=). */
+    public static function search(Builder $query, string $search): Builder
+    {
+        $term = '%'.mb_strtolower($search).'%';
+
+        return $query->where(fn (Builder $q) => $q
+            ->whereRaw('LOWER(title) LIKE ?', [$term])
+            ->orWhereRaw('LOWER(caption) LIKE ?', [$term]));
+    }
+
+    public static function deleteAction(): Action
+    {
+        return Action::make('delete')
+            ->label('Delete')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete this post?')
+            ->modalDescription(self::DELETE_NOTICE)
+            ->modalSubmitActionLabel('Delete')
+            ->action(function (Post $record, PostDeletionService $deletion, Action $action): void {
+                $deletion->delete($record);
+
+                Notification::make()->title('Post deleted')->success()->send();
+                $action->success();
+            });
+    }
+
+    /** COMPLIANCE P-05: scheduled posts can be cancelled before they go out. */
+    public static function cancelScheduledAction(): Action
+    {
+        return Action::make('cancelScheduled')
+            ->label('Cancel schedule')
+            ->icon(Heroicon::OutlinedXCircle)
+            ->color('warning')
+            ->visible(fn (Post $record): bool => $record->overallStatus() === 'scheduled')
+            ->requiresConfirmation()
+            ->modalHeading('Cancel this scheduled post?')
+            ->modalDescription(self::CANCEL_NOTICE)
+            ->modalSubmitActionLabel('Cancel post')
+            ->action(function (Post $record, PostDeletionService $deletion, Action $action): void {
+                $deletion->delete($record);
+
+                Notification::make()->title('Scheduled post cancelled')->success()->send();
+                $action->success();
+            });
     }
 
     public static function statusColor(string $status): string
@@ -90,140 +169,5 @@ class PostsTable
             ->whereIn('status', PostDistribution::IN_FLIGHT)
             ->whereHas('post', fn (Builder $q) => $q->where('user_id', auth()->id()))
             ->exists();
-    }
-
-    /** Shared modal form fields, built from the post owner's connected providers. */
-    protected static function formSchema(int $userId, ?Post $record = null): array
-    {
-        $fields = [];
-        foreach (app(CrossPostService::class)->optionsForUser($userId) as $opt) {
-            $fields[] = Toggle::make('platform_'.$opt['provider'])
-                ->label($opt['label'])
-                ->default($opt['publishable'])
-                ->disabled(! $opt['publishable'])
-                ->helperText($opt['reason']);
-        }
-
-        $fields[] = TextInput::make('title')
-            ->default($record?->title)
-            ->maxLength(100);
-        $fields[] = Textarea::make('description')
-            ->label('Caption / description')
-            ->default($record?->caption)
-            ->rows(3);
-        $fields[] = TextInput::make('hashtags')
-            ->placeholder('#shorts #reels');
-        $fields[] = Select::make('privacy')
-            ->label('YouTube privacy')
-            ->options(['public' => 'Public', 'unlisted' => 'Unlisted', 'private' => 'Private'])
-            ->default('public');
-
-        if ($record) {
-            $fields[] = FileUpload::make('video')
-                ->label('Upload video (optional)')
-                ->disk('public')
-                ->directory('videos')
-                ->acceptedFileTypes(['video/mp4', 'video/quicktime'])
-                ->helperText('Leave empty to use the post\'s existing video or the URL below.');
-            $fields[] = TextInput::make('video_url')
-                ->label('Public video URL (optional)')
-                ->url();
-        }
-
-        return $fields;
-    }
-
-    protected static function optionsFromData(array $data): array
-    {
-        return [
-            'title' => $data['title'] ?? null,
-            'description' => $data['description'] ?? '',
-            'caption' => $data['description'] ?? '',
-            'hashtags' => $data['hashtags'] ?? '',
-            'privacy' => $data['privacy'] ?? 'public',
-        ];
-    }
-
-    protected static function providersFromData(array $data): array
-    {
-        $providers = [];
-        foreach ($data as $key => $value) {
-            if (str_starts_with($key, 'platform_') && $value) {
-                $providers[] = substr($key, strlen('platform_'));
-            }
-        }
-
-        return $providers;
-    }
-
-    protected static function crossPostAction(): Action
-    {
-        return Action::make('crosspost')
-            ->label('Cross-post')
-            ->icon('heroicon-o-paper-airplane')
-            ->schema(fn (Post $record): array => self::formSchema($record->user_id, $record))
-            ->action(function (array $data, Post $record): void {
-                // Resolve the chosen video source onto the post.
-                if (! empty($data['video'])) {
-                    $record->update(['download_path' => $data['video']]);
-                } elseif (! empty($data['video_url'])) {
-                    $record->update(['video_url' => $data['video_url']]);
-                }
-
-                $providers = self::providersFromData($data);
-                if (empty($providers)) {
-                    Notification::make()->title('Pick at least one platform')->warning()->send();
-
-                    return;
-                }
-
-                $result = app(CrossPostService::class)->dispatch($record, $providers, self::optionsFromData($data));
-
-                Notification::make()
-                    ->title('Cross-post queued')
-                    ->body(self::summaryLine($result))
-                    ->success()
-                    ->send();
-            });
-    }
-
-    protected static function crossPostBulkAction(): BulkAction
-    {
-        return BulkAction::make('crosspost_bulk')
-            ->label('Cross-post')
-            ->icon('heroicon-o-paper-airplane')
-            ->schema(fn (): array => self::formSchema(auth()->id()))
-            ->action(function (array $data, Collection $records): void {
-                $providers = self::providersFromData($data);
-                if (empty($providers)) {
-                    Notification::make()->title('Pick at least one platform')->warning()->send();
-
-                    return;
-                }
-
-                $service = app(CrossPostService::class);
-                foreach ($records as $record) {
-                    $service->dispatch($record, $providers, self::optionsFromData($data));
-                }
-
-                Notification::make()
-                    ->title('Cross-post queued for '.$records->count().' post(s)')
-                    ->success()
-                    ->send();
-            })
-            ->deselectRecordsAfterCompletion();
-    }
-
-    protected static function summaryLine(array $result): string
-    {
-        $parts = [];
-        if (! empty($result['dispatched'])) {
-            $parts[] = 'Queued: '.implode(', ', $result['dispatched']);
-        }
-        foreach ($result['skipped'] as $skip) {
-            $parts[] = 'Skipped '.$skip['provider'].' ('.$skip['reason'].')';
-        }
-
-        return implode(' â€” ', $parts) ?: 'Nothing to do.';
     }
 }

@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Posts\RelationManagers;
 
+use App\Models\Post;
 use App\Models\PostDistribution;
+use App\Services\AnalyticsService;
 use App\Services\CrossPostService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -17,6 +19,23 @@ class DistributionsRelationManager extends RelationManager
     protected static string $relationship = 'distributions';
 
     protected static ?string $title = 'Distributions';
+
+    /** @var array<int, array<string, mixed>>|null per-distribution latest metrics from AnalyticsService::post (§5.4) */
+    private ?array $metrics = null;
+
+    /** Latest snapshot per distribution, exactly as GET /api/posts/{id}/analytics. */
+    public function metricsFor(PostDistribution $distribution): array
+    {
+        if ($this->metrics === null) {
+            /** @var Post $post */
+            $post = $this->getOwnerRecord();
+            $this->metrics = collect(app(AnalyticsService::class)->post($post)['platforms'])
+                ->keyBy('distribution_id')
+                ->all();
+        }
+
+        return $this->metrics[$distribution->id] ?? ['metrics' => app(AnalyticsService::class)->zeroMetrics(), 'captured_on' => null];
+    }
 
     /** Shown on the View page; the Retry action must stay available there. */
     public function isReadOnly(): bool
@@ -59,8 +78,24 @@ class DistributionsRelationManager extends RelationManager
                     ->wrap()
                     ->limit(120)
                     ->placeholder('—'),
-                TextColumn::make('attempts')
+                TextColumn::make('views')
+                    ->state(fn (PostDistribution $record): int => (int) $this->metricsFor($record)['metrics']['views'])
                     ->numeric(),
+                TextColumn::make('likes')
+                    ->state(fn (PostDistribution $record): int => (int) $this->metricsFor($record)['metrics']['likes'])
+                    ->numeric(),
+                TextColumn::make('comments')
+                    ->state(fn (PostDistribution $record): int => (int) $this->metricsFor($record)['metrics']['comments'])
+                    ->numeric()
+                    ->toggleable(),
+                TextColumn::make('captured_on')
+                    ->label('Stats as of')
+                    ->state(fn (PostDistribution $record): ?string => $this->metricsFor($record)['captured_on'] ?? null)
+                    ->placeholder('Not synced yet')
+                    ->toggleable(),
+                TextColumn::make('attempts')
+                    ->numeric()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('published_at')
                     ->dateTime()
                     ->placeholder('—'),

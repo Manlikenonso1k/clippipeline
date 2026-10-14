@@ -19,7 +19,7 @@ class TiktokInsights extends Page
 
     protected static ?string $navigationLabel = 'TikTok Insights';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $title = 'TikTok Insights';
 
