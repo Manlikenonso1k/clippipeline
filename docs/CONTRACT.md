@@ -335,3 +335,106 @@ The mobile app invalidates `['posts']`, `['post', postId]` and `['analytics']` q
 | `analytics:sync` | every 3 hours, withoutOverlapping | ANALYTICS |
 | `analytics:sync --recent` (distributions published 55–120 min ago, not yet synced after publish) | every 10 minutes | ANALYTICS |
 | `tiktok:poll-latest` | every 15 minutes (existing, optional) | – |
+
+---
+
+# Part 2 — Parity & compliance additions (feat/parity)
+
+Owners: **BE** backend agent. Mobile types (`src/api/types.ts`) and Filament use exactly these shapes.
+Fix list: `docs/PARITY.md`. Compliance rules: `docs/COMPLIANCE.md` (IDs referenced below).
+
+## 9. Mobile sign-in broker (fixes mobile Google/Facebook/TikTok login; no new redirect URIs)
+
+### GET `/auth/{provider}/start?platform=mobile` — public, provider ∈ `google|facebook|tiktok`
+200 `{"provider":"google","auth_url":"https://accounts.google.com/o/oauth2/v2/auth?...&state=...","expires_at":"..."}`
+The signed state carries `{purpose:"login", provider, platform:"mobile", nonce, exp}`.
+Callbacks used (already registered): google → `/auth/callback/google`; facebook → `/integrations/callback/instagram`; tiktok → `/integrations/callback/tiktok`
+(the integration callbacks branch on `state.purpose === "login"`; basic login scopes only).
+On success the callback finds-or-creates the user (same matching as `/auth/*/token`), stores a one-time code (5 min, single use)
+and redirects to `clippipelinemobile://auth?status=ok&code=<code>`; on failure `clippipelinemobile://auth?status=error&message=<urlencoded>`.
+
+### POST `/auth/exchange` — public
+Request `{"code":"<one-time code>","device_name":"android"}` → 200 `{"token":"<sanctum>","user":{"id":1,"name":"...","email":"...","avatar":null}}` · 422 invalid/expired/used code.
+
+## 10. Me, preferences, account deletion
+
+```ts
+interface Plan { name: 'free' | 'pro' | 'agency'; clips_used: number; clips_limit: number | null; renews_at: string | null; billing_url: string }
+interface SyncState { status: 'active' | 'idle' | 'attention'; last_synced_at: string | null }
+// active = ≥1 active account and last analytics sync < 4h; attention = any account needs_reauth/error; idle otherwise
+interface Preferences { notifications_enabled: boolean; auto_sync: boolean; default_platforms: Platform[]; default_hashtags: string[] }
+interface AppFlags { tiktok_audited: boolean; youtube_audited: boolean; support_email: string; privacy_url: string; terms_url: string; delete_account_url: string }
+interface Me { user: User; server_time: string; plan: Plan; sync: SyncState; preferences: Preferences; flags: AppFlags }
+```
+`clips_used` = posts created in the current calendar month. `clips_limit` from config per plan (`null` = unlimited). `billing_url` = absolute URL of the web billing page.
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| GET | `/me` | – | `Me` (extends §2; old fields unchanged) |
+| PATCH | `/me` | `{"name":"New name"}` (1–100 chars) | `Me` |
+| GET | `/me/preferences` | – | `Preferences` |
+| PATCH | `/me/preferences` | any subset of `Preferences` | `Preferences` |
+| DELETE | `/me` | `{"confirm":"DELETE"}` | 202 `{"status":"scheduled","completes_by":"<ISO, ≤7 days>"}`; tokens revoked and Sanctum tokens deleted immediately (A-02) |
+
+`auto_sync=false` excludes the user from scheduled `analytics:sync` and `tiktok:poll-latest`. `notifications_enabled=false` stops pushes to the user's devices.
+
+## 11. Notifications (bell)
+
+```ts
+interface AppNotification { id: string; type: 'distribution_published' | 'distribution_failed' | 'account_needs_reauth'; title: string; body: string; data: { postId?: number; provider?: ConnectProvider }; read_at: string | null; created_at: string }
+```
+| Method | Path | Response |
+|---|---|---|
+| GET | `/notifications?limit=30` | `{"unread_count":2,"items":AppNotification[]}` newest first |
+| POST | `/notifications/read-all` | 204 |
+
+Every push sent by `ExpoPushService::sendToUser` also stores a Laravel database notification with the same title/body/data (sent even when push is disabled).
+
+## 12. Posts additions
+
+- `GET /posts` adds optional `q` (matches title/caption, case-insensitive) and `platform` (`Platform`, posts with a distribution on it).
+- `DELETE /posts/{id}` → 204. Deletes the post, its distributions, analytics and stored video file; cancels queued/scheduled jobs. Does **not** delete anything already published on platforms (UI says so).
+- `POST /posts` adds (multipart, all optional unless noted):
+  - `video_duration_seconds` (number) — client-measured; server re-checks with the MP4 header when possible (P-02).
+  - `platform_options[youtube][privacy_status]` = `public|private|unlisted` (required when youtube selected; forced `private` while `youtube_audited=false`), `platform_options[youtube][guidelines_confirmed]=1` (required when youtube selected).
+  - `platform_options[tiktok][privacy_level]` (required when tiktok selected; must be in the last creator-info `privacy_level_options`), `[disable_comment]`, `[disable_duet]`, `[disable_stitch]` (0/1, default 1 = off), `[brand_organic_toggle]`, `[brand_content_toggle]` (0/1), `[is_aigc]` (0/1), `[music_consent]=1` (required).
+  - 422 field errors use keys like `platform_options.tiktok.privacy_level` and `video` (for duration/size caps per platform, P-02/P-03).
+- `PostDistribution` adds `options: object | null` (the saved platform_options for that platform).
+
+## 13. TikTok creator info (T-01)
+
+### GET `/tiktok/creator-info` — auth (user must have an active tiktok account, else 404)
+```json
+{
+  "creator_nickname": "Nonso",
+  "creator_username": "nonso",
+  "creator_avatar_url": "https://...",
+  "privacy_level_options": ["SELF_ONLY"],
+  "comment_disabled": false,
+  "duet_disabled": false,
+  "stitch_disabled": true,
+  "max_video_post_duration_sec": 600,
+  "can_post": true,
+  "reason": null,
+  "audited": false
+}
+```
+While `audited=false`, `privacy_level_options` is filtered to `["SELF_ONLY"]`. `can_post=false` (with `reason`) when TikTok reports the creator cannot post now.
+
+## 14. Analytics export
+
+### GET `/analytics/export?period=7d|30d|90d` — auth
+`200 text/csv`, `Content-Disposition: attachment; filename="clippipeline-analytics-<period>.csv"`.
+Columns: `post_id,title,platform,url,published_at,views,likes,comments,shares,saves,watch_time_seconds,captured_on` — one row per distribution with the latest snapshot; numbers from AnalyticsService.
+
+## 15. Compliance callbacks & public pages (C-01 … C-08)
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/meta/data-deletion` | form field `signed_request`; 200 `{"url":"https://clippipeline.nonsostudio.com/data-deletion/status?code=X","confirmation_code":"X"}`; 400 bad signature |
+| POST | `/api/meta/deauthorize` | form field `signed_request`; 200 `{"ok":true}` |
+| POST | `/api/webhooks/tiktok` | JSON event; signature header verified; 200 `{"ok":true}` |
+| GET | `/privacy`, `/terms`, `/data-deletion`, `/data-deletion/status?code=`, `/delete-account` | public web pages (Blade) |
+
+## 16. Defaults
+Period default is `7d` everywhere (API, web, mobile).

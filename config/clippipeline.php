@@ -16,4 +16,11 @@ return [
     ],
     // --- end agent:analytics ---
 
+    // --- agent:backend ---
+    // Platform audit flags drive the "stays private until review" notices (docs/COMPLIANCE.md).
+    'tiktok_audited' => filter_var(env('TIKTOK_AUDITED', false), FILTER_VALIDATE_BOOL),
+    'youtube_audited' => filter_var(env('YOUTUBE_AUDITED', false), FILTER_VALIDATE_BOOL),
+    'support_email' => env('SUPPORT_EMAIL') ?: 'support@nonsostudio.com',
+    // --- end agent:backend ---
+
 ];

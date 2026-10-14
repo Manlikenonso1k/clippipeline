@@ -58,6 +58,10 @@ Route::get('/integrations/callback/{provider}', [SocialAuthController::class, 'h
     ->name('integrations.callback');
 // --- end agent:connect ---
 
+// --- agent:backend ---
+// Public compliance pages: /privacy /terms /data-deletion /data-deletion/status /delete-account (CONTRACT §15).
+// --- end agent:backend ---
+
 // --- agent:web ---
 // --- end agent:web ---
 

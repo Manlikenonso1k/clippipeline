@@ -20,6 +20,10 @@ Route::post('/auth/tiktok/token', [AuthController::class, 'tiktokToken']);
 // user automatically when a bearer token is sent).
 Route::post('/device-tokens', [DeviceTokenController::class, 'store']);
 
+// --- agent:backend (public) ---
+// Mobile sign-in broker, Meta/TikTok compliance callbacks (docs/CONTRACT.md §9, §15).
+// --- end agent:backend (public) ---
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::delete('/device-tokens', [DeviceTokenController::class, 'destroy']);
@@ -44,4 +48,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/analytics/top-posts', [AnalyticsController::class, 'topPosts']);
     Route::get('/posts/{post}/analytics', [AnalyticsController::class, 'post']);
     // --- end agent:analytics ---
+
+    // --- agent:backend ---
+    // Me/preferences/account deletion, notifications, delete post, creator-info, export (CONTRACT §10–14).
+    // --- end agent:backend ---
 });
