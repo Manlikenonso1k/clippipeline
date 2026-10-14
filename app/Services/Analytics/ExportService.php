@@ -7,12 +7,18 @@ use App\Models\User;
 use App\Services\AnalyticsService;
 
 /**
- * CSV export (CONTRACT §14): one row per distribution published in the period,
- * with its latest snapshot (lifetime counters, same numbers as AnalyticsService).
+ * CSV export (CONTRACT §14): one row per distribution that gained metrics in the
+ * period or was published in it. `views…watch_time_seconds` are the gains in the
+ * window (AnalyticsService window math, so the columns sum to the Insights totals);
+ * `lifetime_*` are the latest snapshot's counters.
  */
 class ExportService
 {
-    public const COLUMNS = ['post_id', 'title', 'platform', 'url', 'published_at', 'views', 'likes', 'comments', 'shares', 'saves', 'watch_time_seconds', 'captured_on'];
+    public const COLUMNS = [
+        'post_id', 'title', 'platform', 'url', 'published_at',
+        'views', 'likes', 'comments', 'shares', 'saves', 'watch_time_seconds', 'captured_on',
+        'lifetime_views', 'lifetime_likes', 'lifetime_comments', 'lifetime_shares', 'lifetime_saves', 'lifetime_watch_time_seconds',
+    ];
 
     public function __construct(private AnalyticsService $analytics) {}
 
@@ -27,11 +33,17 @@ class ExportService
     {
         [, , $start, $end] = $this->analytics->window($period);
 
+        $gains = $this->analytics->periodGainsByDistribution($user, $period);
+        $gained = array_keys(array_filter($gains, fn (array $m) => array_sum($m) > 0));
+
         $distributions = PostDistribution::query()
             ->with('post:id,user_id,title')
             ->whereHas('post', fn ($q) => $q->where('user_id', $user->id))
-            ->where('status', PostDistribution::STATUS_PUBLISHED)
-            ->whereBetween('published_at', [$start->startOfDay(), $end->endOfDay()])
+            ->where(fn ($q) => $q
+                ->whereIn('id', $gained)
+                ->orWhere(fn ($p) => $p
+                    ->where('status', PostDistribution::STATUS_PUBLISHED)
+                    ->whereBetween('published_at', [$start->startOfDay(), $end->endOfDay()])))
             ->orderBy('published_at')
             ->orderBy('id')
             ->get();
@@ -43,7 +55,8 @@ class ExportService
 
         foreach ($distributions as $d) {
             $snap = $latest[$d->id] ?? null;
-            $metrics = $snap ? $this->analytics->metricsFromRow($snap) : $this->analytics->zeroMetrics();
+            $lifetime = $snap ? $this->analytics->metricsFromRow($snap) : $this->analytics->zeroMetrics();
+            $metrics = $gains[$d->id] ?? $this->analytics->zeroMetrics();
 
             fputcsv($out, [
                 $d->post_id,
@@ -58,6 +71,12 @@ class ExportService
                 $metrics['saves'],
                 $metrics['watch_time_seconds'],
                 $snap ? substr((string) $snap->captured_on, 0, 10) : '',
+                $lifetime['views'],
+                $lifetime['likes'],
+                $lifetime['comments'],
+                $lifetime['shares'],
+                $lifetime['saves'],
+                $lifetime['watch_time_seconds'],
             ], escape: '');
         }
 

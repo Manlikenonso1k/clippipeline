@@ -42,7 +42,9 @@ class PostController extends Controller
             ->get();
 
         if ($filter !== 'all') {
-            $posts = $posts->filter(fn (Post $post) => $post->overallStatus() === $filter)->values();
+            // `failed` also lists partial posts (some platforms failed) so nothing that failed is hidden.
+            $match = $filter === 'failed' ? ['failed', 'partial'] : [$filter];
+            $posts = $posts->filter(fn (Post $post) => in_array($post->overallStatus(), $match, true))->values();
         }
 
         // Plain array (no "data" wrapper) per docs/CONTRACT.md.

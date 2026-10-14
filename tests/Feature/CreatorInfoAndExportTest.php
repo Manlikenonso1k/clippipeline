@@ -94,11 +94,12 @@ class CreatorInfoAndExportTest extends TestCase
         $this->assertSame('attachment; filename="clippipeline-analytics-7d.csv"', $res->headers->get('Content-Disposition'));
 
         $lines = array_values(array_filter(explode("\n", $res->getContent())));
-        $this->assertSame('post_id,title,platform,url,published_at,views,likes,comments,shares,saves,watch_time_seconds,captured_on', $lines[0]);
+        $this->assertSame('post_id,title,platform,url,published_at,views,likes,comments,shares,saves,watch_time_seconds,captured_on,'
+            .'lifetime_views,lifetime_likes,lifetime_comments,lifetime_shares,lifetime_saves,lifetime_watch_time_seconds', $lines[0]);
         $this->assertCount(2, $lines);
         $row = str_getcsv($lines[1], escape: '');
         $this->assertSame([(string) $post->id, "'=cmd() Clip", 'youtube'], array_slice($row, 0, 3));
-        $this->assertSame(['25', '3', '1', '0', '2', '90', now()->toDateString()], array_slice($row, 5));
+        $this->assertSame(['25', '3', '1', '0', '2', '90', now()->toDateString(), '25', '3', '1', '0', '2', '90'], array_slice($row, 5));
 
         $this->assertCount(3, array_filter(explode("\n", $this->get('/api/analytics/export?period=30d')->getContent())));
         $this->get('/api/analytics/export?period=30d')->assertHeader('Content-Disposition', 'attachment; filename="clippipeline-analytics-30d.csv"');

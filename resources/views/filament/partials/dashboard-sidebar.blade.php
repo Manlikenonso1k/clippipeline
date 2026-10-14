@@ -54,6 +54,6 @@
             <span class="clippy-sidebar__icon clippy-sidebar__icon--settings" aria-hidden="true"></span>
             <span>Settings</span>
         </a>
-        <button type="button" class="clippy-sidebar__cta">Upgrade to Pro</button>
+        <a href="{{ app(\App\Services\Account\MeService::class)->billingUrl() }}" class="clippy-sidebar__cta">Upgrade to Pro</a>
     </div>
 </nav>

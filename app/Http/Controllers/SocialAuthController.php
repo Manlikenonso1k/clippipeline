@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\Auth\LoginBroker;
+use App\Services\Auth\SocialUserResolver;
 use App\Services\Connect\ConnectService;
 use App\Services\Connect\DisconnectService;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController
@@ -39,14 +38,16 @@ class SocialAuthController
 
         $socialUser = Socialite::driver('google')->stateless()->user();
 
-        $user = User::firstOrCreate(
-            ['google_id' => $socialUser->getId()],
-            [
-                'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Google User',
-                'email' => $socialUser->getEmail(),
-                'avatar' => $socialUser->getAvatar(),
-                'password' => Hash::make(Str::random(24)),
-            ]
+        if (! $socialUser->getId() || ! $socialUser->getEmail()) {
+            abort(422, 'Google did not return a usable account.');
+        }
+
+        $user = app(SocialUserResolver::class)->google(
+            (string) $socialUser->getId(),
+            (string) $socialUser->getEmail(),
+            $socialUser->getName() ?? $socialUser->getNickname(),
+            $socialUser->getAvatar(),
+            ($socialUser->user['email_verified'] ?? $socialUser->user['verified_email'] ?? true) !== false,
         );
 
         Auth::login($user, true);

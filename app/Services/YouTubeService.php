@@ -53,7 +53,7 @@ class YouTubeService
             ]));
 
         if (! $response->successful()) {
-            throw PublishException::fromResponse('YouTube upload session failed', $response);
+            throw $this->limitError($response) ?? PublishException::fromResponse('YouTube upload session failed', $response);
         }
 
         $location = $response->header('Location');
@@ -126,7 +126,7 @@ class YouTubeService
         }
 
         if (! $response->successful()) {
-            throw PublishException::fromResponse('YouTube upload failed', $response);
+            throw $this->limitError($response) ?? PublishException::fromResponse('YouTube upload failed', $response);
         }
 
         if (! $response->json('id')) {
@@ -134,6 +134,24 @@ class YouTubeService
         }
 
         return (array) $response->json();
+    }
+
+    /**
+     * COMPLIANCE P-03: the project's daily upload quota or the channel's upload limit
+     * becomes a friendly "limit reached" error instead of the raw API text.
+     */
+    public function limitError(Response $response): ?PublishException
+    {
+        $reasons = collect((array) $response->json('error.errors', []))->pluck('reason')->filter()->all();
+
+        if (array_intersect($reasons, ['quotaExceeded', 'dailyLimitExceeded', 'rateLimitExceeded', 'userRateLimitExceeded']) !== []) {
+            return PublishException::permanent("YouTube limit reached: ClipPipeline's daily YouTube upload quota is used up. Retry this post tomorrow.");
+        }
+        if (in_array('uploadLimitExceeded', $reasons, true)) {
+            return PublishException::permanent('YouTube limit reached: this channel has hit its upload limit for now. Retry later.');
+        }
+
+        return null;
     }
 
     /** Best thumbnail URL from a video resource (falls back to the standard i.ytimg URL). */

@@ -178,7 +178,7 @@ interface Post {
 ```
 
 ### GET `/posts?filter=all|published|processing|failed|scheduled` — auth
-200: `Post[]` newest first. `filter` is an exact match on `Post.status` (`all` = no filter; `partial` posts appear under `all` only).
+200: `Post[]` newest first. `filter` matches `Post.status` (`all` = no filter); `failed` matches `failed` **or** `partial` (any platform failed).
 
 ### GET `/posts/{id}` — auth
 200: `Post`.
@@ -425,7 +425,9 @@ While `audited=false`, `privacy_level_options` is filtered to `["SELF_ONLY"]`. `
 
 ### GET `/analytics/export?period=7d|30d|90d` — auth
 `200 text/csv`, `Content-Disposition: attachment; filename="clippipeline-analytics-<period>.csv"`.
-Columns: `post_id,title,platform,url,published_at,views,likes,comments,shares,saves,watch_time_seconds,captured_on` — one row per distribution with the latest snapshot; numbers from AnalyticsService.
+Columns: `post_id,title,platform,url,published_at,views,likes,comments,shares,saves,watch_time_seconds,captured_on,lifetime_views,lifetime_likes,lifetime_comments,lifetime_shares,lifetime_saves,lifetime_watch_time_seconds`.
+One row per distribution that gained metrics in the window or was published in it. `views…watch_time_seconds` are the **gains in the window**
+(same math as §5, so the columns sum to `/analytics/overview` `totals`); `lifetime_*` and `captured_on` come from the latest snapshot.
 
 ## 15. Compliance callbacks & public pages (C-01 … C-08)
 

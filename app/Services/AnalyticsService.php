@@ -193,6 +193,25 @@ class AnalyticsService
         ])->all();
     }
 
+    /**
+     * Per-distribution period gains for the user's distributions (same window math as
+     * overview(): Σ max(0, value(end) − value(start − 1))). Used by the CSV export (§14).
+     *
+     * @return array<int, array<string,int>> distribution id => metrics gained in the window
+     */
+    public function periodGainsByDistribution(User $user, string $period): array
+    {
+        [, , $start, $end] = $this->window($period);
+        $series = $this->loadSeries($this->distributionIds($user), $start->subDay(), $end);
+
+        $gains = [];
+        foreach ($series as $id => $snaps) {
+            $gains[$id] = $this->periodTotals([$snaps], $start, $end);
+        }
+
+        return $gains;
+    }
+
     // ---------------------------------------------------------------- helpers
 
     /**

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Post;
 use App\Models\PostDistribution;
 use App\Models\User;
+use App\Services\Account\MeService;
 use App\Services\Publishing\PublishRules;
 use Carbon\CarbonInterface;
 use Illuminate\Http\UploadedFile;
@@ -25,6 +26,29 @@ class PostUploadService
     public function __construct(private CrossPostService $crossPost, private PublishRules $rules) {}
 
     /**
+     * USER_SIM BUG-4: the plan's monthly clip allowance (GET /me plan.clips_limit) is enforced
+     * for the API and Filament create alike. 422 on `video`.
+     *
+     * @throws ValidationException
+     */
+    public function assertWithinPlan(User $user): void
+    {
+        $plan = app(MeService::class)->plan($user);
+        $limit = $plan['clips_limit'];
+
+        if ($limit !== null && $plan['clips_used'] >= $limit) {
+            throw ValidationException::withMessages([
+                'video' => sprintf(
+                    "You've used all %d clips in your %s plan this month. Upgrade your plan or post again from %s.",
+                    $limit,
+                    ucfirst($plan['name']),
+                    now()->addMonthNoOverflow()->startOfMonth()->toFormattedDateString(),
+                ),
+            ]);
+        }
+    }
+
+    /**
      * @param  array<int, string>  $platforms
      * @param  array<int, string>  $hashtags  without '#'
      * @param  array<string, mixed>  $platformOptions  platform_options input (CONTRACT §12)
@@ -43,6 +67,8 @@ class PostUploadService
         array $platformOptions = [],
         ?float $clientDurationSeconds = null,
     ): Post {
+        $this->assertWithinPlan($user);
+
         $checked = $this->rules->validate(
             $user,
             $video,

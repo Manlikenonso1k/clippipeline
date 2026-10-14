@@ -213,6 +213,7 @@ class AnalyticsSync
             ['platform' => $account->provider, 'followers' => $followers],
         );
 
-        SocialAccount::query()->whereKey($account->id)->update(['follower_count' => $followers]);
+        // BUG-3: the Connect tab's "synced <date>" reads last_synced_at.
+        SocialAccount::query()->whereKey($account->id)->update(['follower_count' => $followers, 'last_synced_at' => now()]);
     }
 }

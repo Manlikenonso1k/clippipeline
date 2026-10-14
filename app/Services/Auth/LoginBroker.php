@@ -160,7 +160,7 @@ class LoginBroker
             throw new RuntimeException('Google did not return a usable account.');
         }
 
-        return $this->users->google((string) $id, (string) $email, $info->json('name'), $info->json('picture'));
+        return $this->users->google((string) $id, (string) $email, $info->json('name'), $info->json('picture'), $info->json('email_verified') !== false);
     }
 
     private function facebook(string $code): User

@@ -209,8 +209,8 @@ class PostForm
                 Image::make(fn (): string => (string) ($creator()['creator_avatar_url'] ?? ''), 'TikTok avatar')
                     ->imageSize(48)
                     ->visible(fn (): bool => filled($creator()['creator_avatar_url'] ?? null)),
-                Text::make(fn (): string => 'Posting to @'.($creator()['creator_nickname'] ?? $creator()['creator_username'] ?? '')
-                    .(filled($creator()['creator_username'] ?? null) ? ' ('.$creator()['creator_username'].')' : ''))
+                Text::make(fn (): string => 'Posting to @'.(($creator()['creator_username'] ?? '') ?: ($creator()['creator_nickname'] ?? ''))
+                    .(filled($creator()['creator_nickname'] ?? null) ? ' ('.$creator()['creator_nickname'].')' : ''))
                     ->visible(fn (): bool => $creator() !== null),
                 Callout::make(fn (): string => 'TikTok says this account cannot post right now'.(filled($creator()['reason'] ?? null) ? ': '.$creator()['reason'] : '.'))
                     ->danger()
@@ -350,7 +350,7 @@ class PostForm
             }
 
             $handle = $platform === 'tiktok' && $creator
-                ? '@'.($creator['creator_username'] ?? $creator['creator_nickname'] ?? '')
+                ? '@'.(($creator['creator_username'] ?? '') ?: ($creator['creator_nickname'] ?? ''))
                 : ($handles[$platform] ?? null);
 
             $rows[] = '<dt><strong>'.$e($labels[$platform] ?? ucfirst((string) $platform)).'</strong></dt><dd>'

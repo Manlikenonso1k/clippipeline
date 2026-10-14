@@ -296,7 +296,7 @@ class FilamentPostsTest extends TestCase
         Livewire::test(CreatePost::class)
             ->assertSet('tiktokCreator', $creator)
             ->fillForm(['platforms' => ['tiktok']]) // T-01: fetched again when TikTok is picked
-            ->assertSeeText('Posting to @Nonso')
+            ->assertSeeText('Posting to @nonso (Nonso)')
             ->assertSeeText(PostForm::TIKTOK_PRIVATE_NOTICE)
             ->assertSeeText('Only me')
             ->assertSeeText('600 seconds')

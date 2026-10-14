@@ -126,6 +126,28 @@ class PublishJobTest extends TestCase
         $this->assertSame(1, $dist->attempts);
     }
 
+    public function test_youtube_quota_exceeded_becomes_a_friendly_limit_error(): void
+    {
+        Http::fake([
+            'www.googleapis.com/upload/youtube/*' => Http::response(['error' => [
+                'code' => 403,
+                'message' => 'The request cannot be completed because you have exceeded your quota.',
+                'errors' => [['reason' => 'quotaExceeded', 'domain' => 'youtube.quota']],
+            ]], 403),
+        ]);
+
+        $user = User::factory()->create();
+        $post = $this->makePost($user);
+        $this->account($user, 'youtube');
+        $dist = $this->distribution($post, 'youtube');
+
+        (new PublishToYouTubeShortsJob($dist->id))->handle();
+
+        $dist->refresh();
+        $this->assertSame('failed', $dist->status);
+        $this->assertStringStartsWith('YouTube limit reached', $dist->error_message);
+    }
+
     public function test_account_lookup_is_scoped_to_the_post_owner(): void
     {
         $owner = User::factory()->create();

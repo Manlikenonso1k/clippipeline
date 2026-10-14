@@ -53,6 +53,31 @@ class PostApiTest extends TestCase
         return UploadedFile::fake()->create('clip.mp4', 512, 'video/mp4');
     }
 
+    public function test_store_enforces_the_monthly_clip_limit(): void
+    {
+        // Free plan: 10 clips per calendar month (config clippipeline.plans.starter).
+        Post::factory()->upload()->count(10)->create(['user_id' => $this->user->id]);
+
+        $this->post('/api/posts', [
+            'video' => $this->video(),
+            'title' => 'One too many',
+            'platforms' => ['instagram'],
+        ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['video' => 'used all 10 clips']);
+
+        $this->assertSame(10, Post::where('user_id', $this->user->id)->count());
+        Queue::assertNothingPushed();
+
+        // Last month's clips do not count.
+        Post::where('user_id', $this->user->id)->update(['created_at' => now()->subMonthNoOverflow()->startOfMonth()]);
+        $this->post('/api/posts', [
+            'video' => $this->video(),
+            'title' => 'New month',
+            'platforms' => ['instagram'],
+        ], ['Accept' => 'application/json'])->assertCreated();
+    }
+
     public function test_store_uploads_once_and_queues_one_job_per_platform(): void
     {
         $response = $this->post('/api/posts', [
@@ -191,7 +216,9 @@ class PostApiTest extends TestCase
 
         $this->getJson('/api/posts')->assertOk()->assertJsonCount(4);
         $this->getJson('/api/posts?filter=published')->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $published->id);
-        $this->getJson('/api/posts?filter=failed')->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $failed->id);
+        // `failed` also lists partial posts (CONTRACT §4).
+        $this->getJson('/api/posts?filter=failed')->assertOk()->assertJsonCount(2)
+            ->assertJsonPath('0.id', $failed->id)->assertJsonPath('1.id', $partial->id);
         $this->getJson('/api/posts?filter=scheduled')->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $scheduled->id);
         $this->getJson('/api/posts?filter=processing')->assertOk()->assertJsonCount(0);
         $this->getJson('/api/posts?filter=bogus')->assertStatus(422);

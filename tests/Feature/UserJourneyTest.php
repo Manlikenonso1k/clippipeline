@@ -328,7 +328,7 @@ class UserJourneyTest extends TestCase
         $this->assertSame('Instagram could not process the video: Error: The video aspect ratio is not supported. Use 9:16.', $ig['error_message']);
         $this->assertNull($ig['url']);
 
-        $this->assertSame([], $this->getJson('/api/posts?filter=failed')->json(), 'A partial post is not under Failed (contract).');
+        $this->assertSame([$postId], array_column($this->getJson('/api/posts?filter=failed')->json(), 'id'), 'A partial post is listed under Failed (contract §4).');
         $this->assertSame([$postId], array_column($this->getJson('/api/posts?filter=all')->json(), 'id'));
 
         $failed = collect($this->getJson('/api/notifications')->json('items'))->firstWhere('type', 'distribution_failed');
@@ -475,11 +475,7 @@ class UserJourneyTest extends TestCase
             $csvViews += (int) str_getcsv($line, escape: '')[5];
         }
 
-        if ($csvViews !== $screen) {
-            $this->markTestIncomplete("BUG: 7d CSV export sums to {$csvViews} views while Insights 7d shows {$screen}. "
-                .'ExportService::csv() only includes distributions PUBLISHED inside the window and writes lifetime counters, '
-                .'so the shared CSV never matches the screen it was exported from.');
-        }
+        // BUG-2 fixed: the export uses the same window math as Insights.
         $this->assertSame($screen, $csvViews);
     }
 
@@ -496,10 +492,8 @@ class UserJourneyTest extends TestCase
         $stale = collect($this->getJson('/api/social-accounts')->json())
             ->filter(fn ($a) => CarbonImmutable::parse($a['last_synced_at'])->lt(now()->subDay()))
             ->pluck('platform')->all();
-        if ($stale !== []) {
-            $this->markTestIncomplete('BUG: Connect tab shows "synced <date>" from social_accounts.last_synced_at, which only BaseConnector '
-                .'sets at connect time; analytics:sync never updates it, so after a successful sync it still says "synced 10 days ago" for: '.implode(', ', $stale));
-        }
+        // BUG-3 fixed: analytics:sync stamps last_synced_at.
+        $this->assertSame([], $stale);
     }
 
     public function test_d2_unaudited_tiktok_private_post_has_no_public_id_so_analytics_stay_zero(): void
@@ -669,11 +663,8 @@ class UserJourneyTest extends TestCase
         $state = $this->stateFrom($this->getJson('/api/auth/google/start?platform=mobile')->json('auth_url'));
         $location = (string) $this->get('/auth/callback/google?'.http_build_query(['code' => 'google-code', 'state' => $state]))->headers->get('Location');
 
-        if (! str_starts_with($location, 'clippipelinemobile://auth?status=ok&code=')) {
-            $this->markTestIncomplete('BUG: Google sign-in with an email that already has an account fails ('.urldecode($location).'). '
-                .'SocialUserResolver::google() matches only google_id, then firstOrCreate inserts a duplicate email (unique constraint) -> broker error. '
-                .'Facebook links by email; Google must too.');
-        }
+        // BUG-1 fixed: Google links the existing account by verified email.
+        $this->assertStringStartsWith('clippipelinemobile://auth?status=ok&code=', $location);
 
         parse_str((string) parse_url($location, PHP_URL_QUERY), $back);
         $this->postJson('/api/auth/exchange', ['code' => $back['code'], 'device_name' => 'android'])->assertOk()

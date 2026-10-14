@@ -7,7 +7,7 @@
         <div class="hidden md:flex items-center gap-8">
             <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#features">Features</a>
             <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#pricing">Pricing</a>
-            <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">System Status</a>
+            <a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="mailto:{{ config('clippipeline.support_email') }}">Support</a>
         </div>
         <div>
             @auth

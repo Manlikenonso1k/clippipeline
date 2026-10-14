@@ -50,8 +50,8 @@ class CreatorInfoService
 
         $audited = (bool) config('clippipeline.tiktok_audited');
         $info = [
-            'creator_nickname' => $account->display_name,
-            'creator_username' => $account->handle ? ltrim((string) $account->handle, '@') : null,
+            'creator_nickname' => (string) ($account->display_name ?? ''),
+            'creator_username' => $account->handle ? ltrim((string) $account->handle, '@') : '',
             'creator_avatar_url' => $account->avatar_url,
             'privacy_level_options' => [],
             'comment_disabled' => false,
@@ -97,8 +97,8 @@ class CreatorInfoService
         }
 
         $result = [
-            'creator_nickname' => $data['creator_nickname'] ?? $info['creator_nickname'],
-            'creator_username' => $data['creator_username'] ?? $info['creator_username'],
+            'creator_nickname' => (string) ($data['creator_nickname'] ?? $info['creator_nickname']),
+            'creator_username' => (string) ($data['creator_username'] ?? $info['creator_username']),
             'creator_avatar_url' => $data['creator_avatar_url'] ?? $info['creator_avatar_url'],
             'privacy_level_options' => $options,
             'comment_disabled' => (bool) ($data['comment_disabled'] ?? false),

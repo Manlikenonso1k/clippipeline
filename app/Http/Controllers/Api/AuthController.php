@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\SocialAccountResource;
 use App\Models\User;
 use App\Services\Account\MeService;
+use App\Services\Auth\SocialUserResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,21 +32,13 @@ class AuthController extends Controller
             abort(422, 'Google did not return a usable account.');
         }
 
-        $user = User::firstOrCreate(
-            ['google_id' => $socialUser->getId()],
-            [
-                'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Google User',
-                'email' => $email,
-                'avatar' => $socialUser->getAvatar(),
-                'password' => Hash::make(Str::random(24)),
-            ],
+        $user = app(SocialUserResolver::class)->google(
+            (string) $socialUser->getId(),
+            (string) $email,
+            $socialUser->getName() ?? $socialUser->getNickname(),
+            $socialUser->getAvatar(),
+            ($socialUser->user['email_verified'] ?? $socialUser->user['verified_email'] ?? true) !== false,
         );
-
-        $user->fill([
-            'name' => $socialUser->getName() ?? $user->name,
-            'email' => $email,
-            'avatar' => $socialUser->getAvatar() ?? $user->avatar,
-        ])->save();
 
         $token = $user->createToken('mobile')->plainTextToken;
 
@@ -95,26 +88,12 @@ class AuthController extends Controller
         }
 
         // Match by facebook_id first, then link to an existing account by email.
-        $user = User::where('facebook_id', $socialUser->getId())->first();
-        if (! $user && $socialUser->getEmail()) {
-            $user = User::where('email', $socialUser->getEmail())->first();
-        }
-
-        if ($user) {
-            $user->fill([
-                'facebook_id' => $socialUser->getId(),
-                'name' => $socialUser->getName() ?? $user->name,
-                'avatar' => $socialUser->getAvatar() ?? $user->avatar,
-            ])->save();
-        } else {
-            $user = User::create([
-                'facebook_id' => $socialUser->getId(),
-                'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'Facebook User',
-                'email' => $socialUser->getEmail() ?: 'fb_'.$socialUser->getId().'@users.clippipeline.app',
-                'avatar' => $socialUser->getAvatar(),
-                'password' => Hash::make(Str::random(24)),
-            ]);
-        }
+        $user = app(SocialUserResolver::class)->facebook(
+            (string) $socialUser->getId(),
+            $socialUser->getEmail(),
+            $socialUser->getName() ?? $socialUser->getNickname(),
+            $socialUser->getAvatar(),
+        );
 
         return response()->json([
             'token' => $user->createToken('mobile')->plainTextToken,
