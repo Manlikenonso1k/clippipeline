@@ -54,10 +54,6 @@ class FilamentProfileTest extends TestCase
     public function test_plan_matches_the_me_api(): void
     {
         $api = $this->actingAs($this->user, 'sanctum')->getJson('/api/me')->assertOk()->json();
-        if (! isset($api['plan'])) {
-            $this->markTestSkipped('GET /api/me does not return `plan` yet (BACKEND).');
-        }
-
         $page = Livewire::test(Profile::class);
         $this->assertEquals($api['plan'], $page->instance()->me()['plan']);
         $this->assertEquals($api['preferences'], $page->instance()->me()['preferences']);

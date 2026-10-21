@@ -51,10 +51,6 @@ class FilamentNotificationsTest extends TestCase
     public function test_feed_matches_the_api_when_available(): void
     {
         $response = $this->actingAs($this->user, 'sanctum')->getJson('/api/notifications?limit=30');
-        if ($response->status() === 404) {
-            $this->markTestSkipped('GET /api/notifications not registered yet (BACKEND).');
-        }
-
         $this->assertEquals($response->json(), json_decode(json_encode(Livewire::test(Notifications::class)->instance()->feed()), true));
     }
 

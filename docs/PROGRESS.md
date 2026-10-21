@@ -26,3 +26,11 @@ Branch `feat/parity` pushed in both repos. NOT merged into main / feat/app-scree
 ## Owner decisions pending
 - `/admin` limited to is_admin users (User::canAccessPanel) — regular users get 403 until opened or promoted with app:make-admin.
 - TiktokInsights Filament page still shows placeholder data (now last in nav).
+
+## Update 2026-10-21 (web+backend QA-finish)
+- Web parity re-walked: every WEB row in docs/PARITY.md has a QA entry (works, or n/a with reason). Cross-Post Boost is mobile-only (A-07 holds on web).
+- Web post form: video preview added on the Review step (USER_SIM item 5, web part); TikTok form verified against COMPLIANCE T-01..T-10.
+- TiktokInsights page hidden from nav and admin-only (PARITY I5).
+- Removed conditional markTestSkipped guards from Filament tests (backend endpoints exist). No markTestIncomplete remain.
+- Deliverables: docs/COMPLIANCE_QA.md, docs/CLICK_TEST.md, PARITY QA column.
+- Open: `/admin` still limited to is_admin (owner decision); gaps in COMPLIANCE_QA (YouTube Shorts 180 s warning, IG 300 MB, brand logos).

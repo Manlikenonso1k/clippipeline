@@ -24,6 +24,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Illuminate\Support\HtmlString;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Throwable;
 
 /**
@@ -293,6 +294,9 @@ class PostForm
     protected static function reviewFields(Closure $creator): array
     {
         return [
+            // USER_SIM item 5 / TikTok CSG: preview the video before publishing.
+            Text::make(fn (Get $get): HtmlString => self::videoPreview($get('video')))
+                ->visible(fn (Get $get): bool => filled($get('video'))),
             Section::make('Check before publishing')
                 ->schema([
                     Text::make(fn (Get $get): HtmlString => self::summary($get, $creator())),
@@ -306,6 +310,24 @@ class PostForm
             ))->visible(fn (Get $get): bool => in_array('tiktok', (array) $get('platforms'), true)),
             Callout::make(self::PROCESSING_NOTICE)->info(),
         ];
+    }
+
+    /** @param  mixed  $state  the FileUpload state (temporary upload(s)) */
+    protected static function videoPreview(mixed $state): HtmlString
+    {
+        $file = is_array($state) ? reset($state) : $state;
+
+        try {
+            $url = $file instanceof TemporaryUploadedFile ? $file->temporaryUrl() : null;
+        } catch (Throwable) {
+            $url = null;
+        }
+
+        if (! $url) {
+            return new HtmlString('');
+        }
+
+        return new HtmlString('<video controls preload="metadata" src="'.e($url).'" style="max-height: 320px; max-width: 100%; border-radius: 0.5rem;"></video>');
     }
 
     /** The confirm-step summary: destinations, caption and per-platform settings. */

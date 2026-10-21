@@ -106,10 +106,6 @@ class FilamentInsightsTest extends TestCase
     public function test_csv_export_matches_the_api_when_available(): void
     {
         $response = $this->actingAs($this->user, 'sanctum')->get('/api/analytics/export?period=7d');
-        if ($response->status() === 404) {
-            $this->markTestSkipped('GET /api/analytics/export not registered yet (BACKEND).');
-        }
-
         Livewire::test(Insights::class)
             ->callAction('export')
             ->assertFileDownloaded(ExportService::filename('7d'), (string) $response->assertOk()->getContent());

@@ -19,6 +19,14 @@ class TiktokInsights extends Page
 
     protected static ?string $navigationLabel = 'TikTok Insights';
 
+    // PARITY I5: superseded by the Insights page (same AnalyticsService as the API). Kept admin-only, out of the nav.
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function canAccess(): bool
+    {
+        return (bool) Auth::user()?->is_admin;
+    }
+
     protected static ?int $navigationSort = 10;
 
     protected static ?string $title = 'TikTok Insights';
