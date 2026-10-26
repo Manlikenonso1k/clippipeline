@@ -93,6 +93,21 @@ class FilamentPostsTest extends TestCase
         $this->get(PostResource::getUrl('view', ['record' => $theirs]))->assertNotFound();
     }
 
+    public function test_create_form_shows_platform_limits_logos_and_browser_checks(): void
+    {
+        $this->tiktokUser($this->creatorInfo(), 1);
+
+        Livewire::test(CreatePost::class)
+            ->assertSeeHtml('data-video-checks')
+            ->assertSeeHtml('images/brands/youtube.svg')
+            ->assertSeeText('Shorts: up to 180 s')
+            ->assertSeeText('up to 300 MB');
+
+        $this->assertStringContainsString('images/brands/youtube.svg', PostForm::platformOptionsWithLogos()['youtube']);
+        // TikTok has no brand asset until the official pack is added: text name only.
+        $this->assertStringNotContainsString('<img', PostForm::platformOptionsWithLogos()['tiktok']);
+    }
+
     public function test_create_runs_the_api_upload_flow(): void
     {
         Livewire::test(CreatePost::class)

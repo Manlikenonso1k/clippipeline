@@ -21,7 +21,7 @@ Tests: `php artisan test` (ComplianceTest, CreatorInfoAndExportTest, Filament*Te
 | A-06 | done | app/Logging/RedactSecrets.php:14 (tests/Feature/LogRedactionTest.php); app/Models/SocialAccount.php:52-53 (encrypted) |
 | A-07 | done | Web shows sums/averages only (app/Services/AnalyticsService.php); mobile Boost excludes YouTube, insights.tsx:231 (mobile repo) |
 | P-01 | done | Web confirm step: app/Filament/Resources/Posts/Schemas/PostForm.php Review step (createSteps) + summary(); mobile confirm sheet in mobile repo |
-| P-02 | partial | app/Services/Publishing/PublishRules.php:84-88 (YT description 5000 B, strips <>), :91 (FB 3-90 s), :101 (IG 3 s-15 min), :152-158 (TikTok max duration, 4 GB); title <=100 in PostForm detailsFields. Gaps: YouTube Shorts <=180 s warning (warn only) and IG 300 MB not implemented |
+| P-02 | done (web) | app/Services/Publishing/PublishRules.php:84-88 (YT description 5000 B, strips <>), :91 (FB 3-90 s), :101 (IG 3 s-15 min), :152-158 (TikTok max duration, 4 GB); title <=100 in PostForm detailsFields. Web (2026-10): YouTube Shorts <=180 s and IG <=300 MB warnings in the browser (resources/views/filament/forms/video-checks.blade.php) plus limits text in the platform list (PostForm platformsField); IG 300 MB also rejected server-side (PublishRules instagram case). YouTube >180 s stays warn-only by design. Test: test_create_form_shows_platform_limits_logos_and_browser_checks |
 | P-03 | done | PublishRules.php:94-95 (FB 30/day), :107-108,186 (IG content_publishing_limit); YouTube quota mapped in publish job errors |
 | P-04 | done | PostForm.php youtubeSection (ToS link, guidelines checkbox, private forced while YOUTUBE_AUDITED=false); PublishRules.php:50-51,80 |
 | P-05 | done | app/Filament/Resources/Posts/Tables/PostsTable.php:84,135-150 (cancel scheduled); API DELETE /api/posts/{post} |
@@ -29,7 +29,7 @@ Tests: `php artisan test` (ComplianceTest, CreatorInfoAndExportTest, Filament*Te
 | T-01 | done | app/Services/TikTok/CreatorInfoService.php; web refetch on every TikTok pick (PostForm platformsField afterStateUpdated); avatar + "Posting to @name" in tiktokSection; routes/api.php:71 |
 | T-02 | done | PostForm.php tiktokSection tt_privacy_level (options only from creator_info, no default, required); FilamentPostsTest::test_tiktok_form_loads_creator_info_each_time_and_has_no_privacy_default |
 | T-03 | done | PostForm.php tt_allow_* toggles (default false, disabled when creator disabled); PublishRules.php:162-165 |
-| T-04 | done | PostForm.php max-duration text and can_post callout/rule; PublishRules.php:143-154 (server rejects over-max); test_tiktok_blocked_when_creator_cannot_post |
+| T-04 | done | PostForm.php max-duration text and can_post callout/rule; browser-side max-duration warning (video-checks.blade.php, reads $wire.tiktokCreator.max_video_post_duration_sec); PublishRules.php:143-154 (server rejects over-max); test_tiktok_blocked_when_creator_cannot_post |
 | T-05 | done | PostForm.php tt_disclose / tt_brand_organic / tt_brand_content (one required; Branded disables Only me) |
 | T-06 | done | PostForm.php BRAND_ORGANIC_LABEL / BRAND_CONTENT_LABEL helper text |
 | T-07 | done | PostForm.php reviewFields consent line (+ Branded Content Policy when branded); PublishRules.php:58 (music_consent accepted) |
@@ -39,7 +39,7 @@ Tests: `php artisan test` (ComplianceTest, CreatorInfoAndExportTest, Filament*Te
 | U-02 | done | Disconnect modal ConnectAccounts.php:109-125; DisconnectService.php:39 |
 | U-03 | done | Profile.php:46 (DELETE_EXPLANATION), :156-182 (type DELETE), profile.blade.php:43 (/delete-account link) |
 | U-04 | done | connect-accounts.blade.php:31-34 (rationale per provider, YouTube ToS note) |
-| U-05 | partial | Insights.php:82-98 "Last updated"; Connect "Last synced" connect-accounts.blade.php:63. Brand logos next to platform data not on web (names/icons only) |
+| U-05 | done (web; assets to swap) | Insights.php:82-98 "Last updated"; Connect "Last synced" connect-accounts.blade.php:63. Web (2026-10): brand marks next to platform names on the post form (PostForm::platformOptionsWithLogos, public/images/brands/). YouTube/Instagram/Facebook SVGs are simplified stand-ins: replace with official unmodified assets before review. TikTok shows text only until the official Logo and Button pack file is dropped in as public/images/brands/tiktok.svg (TikTok brand rules). Logos on Insights/Connect not added |
 | U-06 | done | ConnectAccounts.php getProviderCards (needs_reauth state) |
 | U-07 | done | panel-footer.blade.php:15, profile.blade.php:48 (SHOULD) |
 | U-08 | done | No "SOC2" in app or views (FilamentProfileTest asserts) |

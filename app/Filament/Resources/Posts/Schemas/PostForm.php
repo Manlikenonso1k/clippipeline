@@ -21,6 +21,7 @@ use Filament\Schemas\Components\Image;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Illuminate\Support\HtmlString;
@@ -123,6 +124,11 @@ class PostForm
                 ->acceptedFileTypes(['video/mp4', 'video/quicktime'])
                 ->maxSize($maxMb * 1024)
                 ->helperText("MP4 or MOV, up to {$maxMb} MB.")
+                ->live()
+                ->columnSpanFull(),
+            // COMPLIANCE P-02 / duration: browser-side checks (server-side PublishRules still enforces).
+            View::make('filament.forms.video-checks')
+                ->viewData(fn (Get $get): array => self::videoCheckData($get('video')))
                 ->columnSpanFull(),
             TextInput::make('title')
                 ->required()
@@ -150,12 +156,16 @@ class PostForm
             ->label('Publish to')
             ->required()
             ->live()
-            ->options(fn (): array => self::platformOptions())
+            ->allowHtml()
+            ->options(fn (): array => self::platformOptionsWithLogos())
             ->in(fn (): array => array_keys(self::platformOptions()))
             ->default(fn (): array => array_values(array_intersect(self::preference('default_platforms'), array_keys(self::platformOptions()))))
             ->descriptions([
+                // COMPLIANCE P-02: platform limits shown next to the toggle.
+                'instagram' => 'Reels: 3 s to 15 min, up to 300 MB.',
+                'facebook' => 'Reels: 3 to 90 s.',
                 // COMPLIANCE P-04: YouTube ToS link next to the YouTube toggle.
-                'youtube' => new HtmlString('By publishing to YouTube you agree to the <a href="'.self::YOUTUBE_TOS_URL.'" target="_blank" rel="noopener" style="text-decoration: underline;">YouTube Terms of Service</a>.'),
+                'youtube' => new HtmlString('Shorts: up to 180 s. By publishing to YouTube you agree to the <a href="'.self::YOUTUBE_TOS_URL.'" target="_blank" rel="noopener" style="text-decoration: underline;">YouTube Terms of Service</a>.'),
             ])
             ->afterStateUpdated(function (?array $state, ?array $old) use ($refreshCreator): void {
                 if (in_array('tiktok', $state ?? [], true) && ! in_array('tiktok', $old ?? [], true)) {
@@ -310,6 +320,46 @@ class PostForm
             ))->visible(fn (Get $get): bool => in_array('tiktok', (array) $get('platforms'), true)),
             Callout::make(self::PROCESSING_NOTICE)->info(),
         ];
+    }
+
+    /** Platforms that have a brand mark in public/images/brands (U-05). TikTok only once the official asset is added. */
+    protected static function logoUrl(string $platform): ?string
+    {
+        $file = "images/brands/{$platform}.svg";
+
+        return is_file(public_path($file)) ? asset($file) : null;
+    }
+
+    /** U-05: option labels with the platform's brand mark (escaped name, unmodified asset). @return array<string, string> */
+    public static function platformOptionsWithLogos(): array
+    {
+        $out = [];
+        foreach (self::platformOptions() as $key => $label) {
+            $logo = self::logoUrl((string) $key);
+            $img = $logo ? '<img src="'.e($logo).'" alt="" width="20" height="20" style="display: inline-block; vertical-align: middle; margin-right: 0.4rem;">' : '';
+            $out[$key] = $img.e($label);
+        }
+
+        return $out;
+    }
+
+    /** @return array{src: ?string, sizeMb: ?float, tiktokMax: int} */
+    public static function videoCheckData(mixed $state): array
+    {
+        $file = is_array($state) ? reset($state) : $state;
+        $src = null;
+        $sizeMb = null;
+
+        if ($file instanceof TemporaryUploadedFile) {
+            try {
+                $src = $file->temporaryUrl();
+                $sizeMb = round(((int) $file->getSize()) / 1048576, 1);
+            } catch (Throwable) {
+                // preview/size unavailable: browser checks simply stay silent
+            }
+        }
+
+        return ['src' => $src, 'sizeMb' => $sizeMb, 'tiktokMax' => 0];
     }
 
     /** @param  mixed  $state  the FileUpload state (temporary upload(s)) */

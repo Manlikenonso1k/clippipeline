@@ -84,4 +84,4 @@ Web: n/a by design. The Boost card is a mobile-only Insights ratio; the Filament
 
 ## Web nav order (verified)
 
-Home (Dashboard.php navigationSort 0), Posts (PostResource 1), Connect (ConnectAccounts 2), Insights (3), Profile (4). Notifications is the topbar bell (not in nav). TiktokInsights is admin-only and hidden from nav. `/admin` itself is limited to `is_admin` users (`User::canAccessPanel`, owner decision pending).
+Home (Dashboard.php navigationSort 0), Posts (PostResource 1), Connect (ConnectAccounts 2), Insights (3), Profile (4). Notifications is the topbar bell (not in nav). TiktokInsights is admin-only and hidden from nav. `/admin` is now open to any signed-in user (`User::canAccessPanel` returns `auth()->check()`, 2026-10). Audit: the only Resource (Posts) and all Pages/Widgets are scoped to `auth()->id()`; there is no admin-only resource, and TiktokInsights stays admin-only via `canAccess`. Covered by CanAccessPanelTest. Any new admin-only resource MUST add `canViewAny()` gated on `is_admin`.
