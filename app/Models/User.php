@@ -23,7 +23,9 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return (bool) $this->is_admin;
+        // Web parity: any signed-in user may open the panel. Every resource/page/widget is scoped to
+        // auth()->id(); the only admin-only surface (TiktokInsights) gates itself on is_admin.
+        return auth()->check();
     }
 
     /**
