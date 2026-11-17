@@ -342,7 +342,8 @@ def cmd_loop(args) -> None:
         size = dest.stat().st_size
         if size <= 400_000:
             break
-    ff(["-ss", "1.5", "-i", src, "-frames:v", "1", "-vf", scale, "-q:v", "5", poster])
+    # 2 s: entrances have settled and transition demos are mid-transition.
+    ff(["-ss", "2.0", "-i", src, "-frames:v", "1", "-vf", scale, "-q:v", "5", poster])
     out({"bytes": size})
 
 
