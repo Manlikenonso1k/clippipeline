@@ -37,6 +37,19 @@ class Health extends Command
             $this->line("  user {$a->user_id} · {$a->provider} · ".($a->handle ?: '—')." · {$expiry}{$attn}");
         }
 
+        // --- agent:studio ---
+        $this->newLine();
+        $this->info('Studio');
+        $seen = cache()->get('studio:worker:last_seen');
+        $this->line('  render worker: '.($seen ? "{$seen['id']} last seen {$seen['at']}" : 'never seen'));
+        try {
+            $counts = DB::table('studio_jobs')->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
+            $this->line('  jobs queued:  '.($counts['queued'] ?? 0).' · running: '.($counts['running'] ?? 0).' · failed: '.($counts['failed'] ?? 0));
+        } catch (\Throwable $e) {
+            $this->line('  (studio tables not migrated)');
+        }
+        // --- end agent:studio ---
+
         return self::SUCCESS;
     }
 

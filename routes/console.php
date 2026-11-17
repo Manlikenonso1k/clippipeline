@@ -37,3 +37,10 @@ Schedule::command('analytics:sync --recent')->everyTenMinutes()->withoutOverlapp
 // still-unauthorized accounts, 36-month snapshot prune, unfinished deletions re-queued.
 Schedule::command('accounts:retention')->dailyAt('03:30')->withoutOverlapping();
 // --- end agent:backend ---
+
+// --- agent:studio ---
+// Studio: requeue jobs whose worker lease expired, prune old files, register new templates.
+Schedule::command('studio:requeue-stale')->everyMinute()->withoutOverlapping();
+Schedule::command('studio:prune')->dailyAt('04:10')->withoutOverlapping();
+Schedule::command('studio:templates-sync')->dailyAt('04:40')->withoutOverlapping();
+// --- end agent:studio ---

@@ -440,3 +440,120 @@ One row per distribution that gained metrics in the window or was published in i
 
 ## 16. Defaults
 Period default is `7d` everywhere (API, web, mobile).
+
+## 17. Studio (video editing, reference style, motion-graphics templates)
+
+Spec: `docs/STUDIO_SPEC.md`. All under `/api`, `auth:sanctum` unless marked public. Every resource is owner-scoped: someone else's id is a 404. `503` when `STUDIO_ENABLED=false`.
+
+### 17.1 Types
+
+```ts
+type Aspect = '9:16' | '1:1' | '16:9';
+type AssetRole = 'source' | 'reference' | 'music' | 'image' | 'logo';
+type AssetStatus = 'pending' | 'fetching' | 'processing' | 'ready' | 'failed';
+type JobType = 'probe' | 'fetch_link' | 'transcribe' | 'analyze_reference' | 'auto_cut' | 'render_preview' | 'render_final' | 'render_template_preview' | 'explainer';
+type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'canceled';
+type TemplateKind = 'segment' | 'overlay' | 'captions' | 'transition';
+
+interface StudioProject {           // list item
+  id: number; title: string; aspect: Aspect; fps: number; revision: number;
+  duration_seconds: number; clip_count: number; poster_url: string | null;
+  reference_asset_id: number | null; has_style_profile: boolean; can_undo_auto_cut: boolean;
+  last_render: StudioRender | null; created_at: string; updated_at: string;
+}
+interface StudioProjectDetail extends StudioProject {   // GET/POST/PATCH responses
+  edl: Edl; style_profile: StyleProfile | null; assets: StudioAsset[]; active_jobs: StudioJob[];
+}
+interface StudioAsset {
+  id: number; project_id: number | null; role: AssetRole; origin: 'upload' | 'link';
+  original_name: string | null; mime: string | null; size_bytes: number | null;
+  duration_seconds: number | null; width: number | null; height: number | null; fps: number | null; has_audio: boolean | null;
+  status: AssetStatus; error: string | null;
+  url: string | null;          // signed, original (null for analysed references: media is deleted)
+  preview_url: string | null;  // signed 540p H.264 proxy (images: the image)
+  poster_url: string | null; waveform_url: string | null; thumbs_url: string | null;
+  thumbs: { cols: number; rows: number; count: number; interval: number; width: number; height: number } | null;
+  has_transcript: boolean; transcript_language: string | null; style_profile: StyleProfile | null; created_at: string;
+}
+interface StudioJob {
+  id: string; type: JobType; status: JobStatus; progress: number /*0–1*/; message: string | null; error: string | null;
+  project_id: number | null; asset_id: number | null; attempts: number;
+  result: null | { cut_list: string[]; removed_seconds: number; kept_seconds: number; revision: number }  // auto_cut
+              | { render_id: number }                                                                   // render_*
+              | { style_profile: StyleProfile };                                                        // analyze_reference
+  created_at: string; started_at: string | null; finished_at: string | null;
+}
+interface StudioRender {
+  id: number; project_id: number; quality: 'preview' | 'final'; edl_revision: number;
+  duration_seconds: number | null; size_bytes: number | null; width: number | null; height: number | null;
+  url: string; download_url: string; poster_url: string | null;   // signed, ~2 h
+  post_id: number | null; check: { lufs?: number; true_peak?: number; black_frames?: number; long_silences?: number } | null; created_at: string;
+}
+interface StudioTemplate {
+  slug: string; version: number; name: string; categories: string[]; kind: TemplateKind; aspects: Aspect[];
+  default_duration: number; min_duration: number; max_duration: number;
+  preview_url: string | null; poster_url: string | null;   // public, 4 s muted loop ≤ 400 KB
+  previews: Partial<Record<Aspect, { video_url: string | null; poster_url: string | null }>>;
+  credit: { handle: string; url?: string; note?: string } | null; uses_count: number; created_at: string;
+  props_schema: JsonSchema; default_props: Record<string, unknown>;
+}
+interface StudioUsage {
+  plan: 'free' | 'pro' | 'agency'; period_start: string;
+  render_minutes_used: number; render_minutes_limit: number | null;   // previews count at 25 %
+  ai_calls_used: number; ai_calls_limit: number | null;
+  max_source_minutes: number; max_upload_mb: number; ai_enabled: boolean; link_fetcher: 'off' | 'ytdlp';
+}
+```
+
+**EDL v2** (`Edl`) is the single source of truth for an edit; see STUDIO_SPEC §7 for the full shape (`version: 2, aspect, fps, theme{accent,accent2,bg,text,font}, fit: 'blur'|'crop'|'black', main[], overlays[], captions{}, music[], loudness`). `main[]` items are `{id, type:'clip', asset_id, in, out, volume_db?, speed?, zoom?, transition_in?}` or `{id, type:'template', template, version, duration, props}`. Template props reference media as `{"asset_id": n}`.
+
+**Props schema subset** (clients render forms from it): `string` (maxLength), `number` (minimum/maximum → slider), `boolean`, `enum` → select, colour = `{type:'string', format:'color'}`, media = `{type:'object', format:'asset:image'|'asset:video'}` holding `{asset_id}`, `string[]` (maxItems).
+
+### 17.2 Endpoints
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| GET | `/studio/projects` | | `StudioProject[]` |
+| POST | `/studio/projects` | `{title?, aspect?, theme?}` | 201 `StudioProjectDetail` |
+| GET | `/studio/projects/{id}` | | `StudioProjectDetail` |
+| PATCH | `/studio/projects/{id}` | `{title?}` and/or `{edl, revision}` / `{aspect, revision}` | `StudioProjectDetail`; **409** `{message, revision}` when `revision` is stale; 422 for an invalid EDL or someone else's asset |
+| DELETE | `/studio/projects/{id}` | | 204 |
+| POST | `/studio/projects/{id}/assets` | multipart `file` + `role`, **or** JSON `{url, role}` | 201 `StudioAsset` (queues `probe`, or `fetch_link` → `probe`) |
+| GET | `/studio/assets/{id}` | | `StudioAsset` |
+| GET | `/studio/assets/{id}/transcript` | | `{asset_id, language, engine, words:[{w,s,e}], events:[]}`; 404 `{message, pending}` |
+| DELETE | `/studio/assets/{id}` | | 204; removes it from the EDL (revision +1) |
+| POST | `/studio/projects/{id}/auto-cut` | `{remove_silences=true, silence_min_seconds=0.6, silence_db=-35, remove_fillers=true, filler_words[], max_segment_seconds?, use_reference_style=false, target_seconds?}` | 202 `StudioJob` (runs instantly: `status` is `done` with `result.cut_list`) |
+| POST | `/studio/projects/{id}/undo-auto-cut` | | `StudioProjectDetail`; 422 if nothing to undo |
+| POST | `/studio/projects/{id}/apply-reference` | | `StudioProjectDetail & {changes: string[]}`; 422 without a style profile |
+| POST | `/studio/projects/{id}/render` | `{quality:'preview'\|'final'}` | 202 `StudioJob` (same job returned while one is active for this revision); 422 if media is processing or the plan's render minutes would run out |
+| GET | `/studio/projects/{id}/renders` | | `StudioRender[]` newest first |
+| DELETE | `/studio/renders/{id}` | | 204 |
+| POST | `/studio/renders/{id}/cross-post` | same as `POST /posts` minus `video` | 201 `Post` (§4) |
+| GET | `/studio/jobs/{id}` | | `StudioJob` (poll every 3 s) |
+| POST | `/studio/jobs/{id}/cancel` | | `StudioJob` |
+| GET (public) | `/studio/templates?category=&kind=&aspect=&sort=popular\|new` | | `{total, categories:[{name,count}], templates: StudioTemplate[]}` (latest active version of each) |
+| GET (public) | `/studio/templates/{slug}?version=` | | `StudioTemplate` |
+| POST | `/studio/templates/{slug}/customize` | `{purpose?, aspect?, colors?: hex[], text?}` | `{props, source:'theme'\|'ai', slug, version}`; AI only when `STUDIO_AI_ENABLED` |
+| GET | `/studio/usage` | | `StudioUsage` |
+| GET (signed) | `/studio/files/{asset\|render}/{id}/{variant}?expires&signature[&download=1]` | | the file (Range supported) |
+
+Upload limits: mp4/mov/webm ≤ `STUDIO_MAX_UPLOAD_MB` (500); jpg/png/webp; mp3/m4a/wav. Sources longer than the plan's `max_source_minutes` fail at probe with a readable `error`.
+
+**Links:** tiktok.com, instagram.com, youtube.com/youtu.be, facebook.com/fb.watch, x.com/twitter.com → 422 *"upload the file instead"* unless `STUDIO_LINK_FETCHER=ytdlp`. Other https links must answer HEAD with a matching `Content-Type` (video/*, audio/*, image/*). **Reference media is deleted right after analysis**; only `style_profile` and its contact sheet stay.
+
+### 17.3 Push
+
+Render done or failed → `ExpoPushService` with `data: {type: 'studio', project_id, url: '/studio/{project_id}', render_id?}`. Tapping opens the project.
+
+### 17.4 Render worker API (token ability `studio:worker`; normal user tokens get 403)
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST | `/worker/claim` | `{worker_id, capabilities?: JobType[]}` | 204 when idle, else `{id, type, attempt, lease_expires_at, input, asset, project?, assets, templates?, limits}` with signed URLs; 10-minute lease |
+| POST | `/worker/jobs/{id}/heartbeat` | `{progress?, message?}` | `{status, lease_expires_at}` (status `canceled` → stop) |
+| POST | `/worker/jobs/{id}/complete` | multipart `result` (JSON string) + `files[name]` | `{status}`; idempotent |
+| POST | `/worker/jobs/{id}/fail` | `{error, retryable?}` | `{status}`; retryable jobs requeue until `max_attempts` (3) |
+
+Result files per type: `probe` → `proxy`, `poster`, `waveform`, `thumbs` + `{duration,width,height,fps,has_audio,silence:{starts,ends,lufs},thumbs:{…}}`; `fetch_link` → `original` + `{sha256,mime,name}`; `transcribe` → `transcript` (JSON `{engine,language,words:[{w,s,e}],events}`); `analyze_reference` → `contact_sheet` + `{style_profile}`; `render_*` → `video`, `poster` + `{duration,width,height,check}`; `render_template_preview` → `video`, `poster`.
+
+`php artisan studio:worker-token` prints a worker token. Scheduler: `studio:requeue-stale` (every minute), `studio:prune` (daily), `studio:templates-sync` (daily).

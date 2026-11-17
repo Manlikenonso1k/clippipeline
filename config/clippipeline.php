@@ -48,4 +48,32 @@ return [
     ],
     // --- end agent:backend ---
 
+    // --- agent:studio ---
+    // Studio (docs/STUDIO_SPEC.md, CONTRACT §17).
+    'studio' => [
+        'enabled' => filter_var(env('STUDIO_ENABLED', true), FILTER_VALIDATE_BOOL),
+        // off | ytdlp. Platform links (TikTok, Instagram, YouTube, Facebook, X) are refused unless ytdlp.
+        'link_fetcher' => env('STUDIO_LINK_FETCHER') ?: 'off',
+        'ai_enabled' => filter_var(env('STUDIO_AI_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'anthropic_api_key' => env('ANTHROPIC_API_KEY'),
+        'ai_model' => env('STUDIO_AI_MODEL') ?: 'claude-haiku-5-5',
+        'max_upload_mb' => (int) (env('STUDIO_MAX_UPLOAD_MB') ?: 500),
+        'max_source_minutes' => (int) (env('STUDIO_MAX_SOURCE_MINUTES') ?: 10),
+        'lease_minutes' => 10,
+        'signed_url_minutes' => 120,
+        'scene_threshold' => 0.3,
+        // Keyed by the contract plan name (MeService::plan()['name']). Placeholders until Nonso confirms.
+        'plans' => [
+            'free' => ['studio_render_minutes' => 10, 'studio_ai_calls' => 20, 'studio_max_source_minutes' => 5],
+            'pro' => ['studio_render_minutes' => 120, 'studio_ai_calls' => 300, 'studio_max_source_minutes' => 10],
+            'agency' => ['studio_render_minutes' => 600, 'studio_ai_calls' => 2000, 'studio_max_source_minutes' => 30],
+        ],
+        'retention' => [
+            'preview_render_days' => 14,
+            'proxy_idle_days' => 30,
+        ],
+        'default_fillers' => ['um', 'uh', 'er', 'ehm', 'hmm'],
+    ],
+    // --- end agent:studio ---
+
 ];

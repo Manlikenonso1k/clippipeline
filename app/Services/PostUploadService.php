@@ -94,6 +94,76 @@ class PostUploadService
             throw $e;
         }
 
+        return $this->persist($user, $title, $caption, $hashtags, $url, $path, $scheduledAt, $platforms, $checked);
+    }
+
+    /**
+     * Studio "Send to cross-post" (CONTRACT §17): same rules as create(), but the video is a
+     * file already on disk (a Studio render). It is copied to the public disk because the
+     * publishing pipeline needs a public HTTPS URL.
+     *
+     * @param  array<int, string>  $platforms
+     * @param  array<int, string>  $hashtags
+     * @param  array<string, mixed>  $platformOptions
+     *
+     * @throws ValidationException
+     */
+    public function createFromStoredFile(
+        User $user,
+        string $absolutePath,
+        string $title,
+        ?string $caption,
+        array $hashtags,
+        array $platforms,
+        ?CarbonInterface $scheduledAt,
+        array $platformOptions = [],
+    ): Post {
+        $this->assertWithinPlan($user);
+
+        if (! is_file($absolutePath)) {
+            throw ValidationException::withMessages(['video' => 'The rendered video is no longer available. Render it again.']);
+        }
+
+        $video = new UploadedFile($absolutePath, basename($absolutePath), 'video/mp4', null, true);
+        $checked = $this->rules->validate(
+            $user,
+            $video,
+            $platforms,
+            $platformOptions,
+            null,
+            $caption,
+            implode(' ', array_map(fn ($t) => '#'.$t, $hashtags)),
+        );
+
+        $path = 'videos/'.now()->format('Y/m').'/'.Str::uuid().'.mp4';
+        $stream = fopen($absolutePath, 'rb');
+        $stored = Storage::disk('public')->writeStream($path, $stream);
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+        if (! $stored) {
+            throw ValidationException::withMessages(['video' => 'The video could not be stored.']);
+        }
+
+        $url = $this->publicUrl($path);
+
+        try {
+            $this->assertReachable($url);
+        } catch (ValidationException $e) {
+            Storage::disk('public')->delete($path);
+            throw $e;
+        }
+
+        return $this->persist($user, $title, $caption, $hashtags, $url, $path, $scheduledAt, $platforms, $checked);
+    }
+
+    /**
+     * One post + one queued distribution per platform; queue the jobs now unless scheduled.
+     *
+     * @param  array{options: array<string, array<string, mixed>>, duration: ?float}  $checked
+     */
+    private function persist(User $user, string $title, ?string $caption, array $hashtags, string $url, string $path, ?CarbonInterface $scheduledAt, array $platforms, array $checked): Post
+    {
         $post = DB::transaction(function () use ($user, $title, $caption, $hashtags, $url, $path, $scheduledAt, $platforms, $checked) {
             $post = Post::create([
                 'user_id' => $user->id,
