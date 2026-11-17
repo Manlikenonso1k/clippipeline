@@ -174,10 +174,21 @@ class Edl
         if ($duration <= 0) {
             return false;
         }
-        $edl['main'][] = [
+        $clip = [
             'id' => self::newId(), 'type' => 'clip', 'asset_id' => $asset->id,
             'in' => 0, 'out' => round($duration, 3), 'volume_db' => 0, 'speed' => 1, 'zoom' => 1,
         ];
+        // Clips go before the outro (segments marked "slot": "outro"), otherwise at the end.
+        $main = array_values($edl['main'] ?? []);
+        $at = count($main);
+        foreach ($main as $i => $seg) {
+            if (($seg['slot'] ?? null) === 'outro') {
+                $at = $i;
+                break;
+            }
+        }
+        array_splice($main, $at, 0, [$clip]);
+        $edl['main'] = $main;
         $project->forceFill(['edl' => $edl, 'revision' => $project->revision + 1])->save();
 
         return true;

@@ -1,0 +1,24 @@
+{
+  "name": "clippipeline-render-worker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ClipPipeline Studio render worker: pulls jobs from Laravel, runs ffmpeg/Whisper/Remotion, uploads results.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "once": "tsx src/index.ts --once",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.541",
+    "@remotion/renderer": "4.0.541",
+    "dotenv": "16.4.7",
+    "tsx": "4.20.6"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.13",
+    "typescript": "5.9.3"
+  }
+}

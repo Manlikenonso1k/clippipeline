@@ -1,0 +1,1041 @@
+{
+  "generated_at": "2026-11-17",
+  "templates": [
+    {
+      "slug": "kinetic-title",
+      "version": 1,
+      "name": "Kinetic title",
+      "categories": [
+        "Kinetic type"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 2.5,
+      "minDuration": 1.2,
+      "maxDuration": 8,
+      "credit": null,
+      "isActive": true,
+      "sort": 1,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "kicker": {
+            "title": "Kicker",
+            "default": "NEW VIDEO",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "default": "Make it move",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "default": "",
+            "maxLength": 80,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "align": {
+            "title": "Alignment",
+            "default": "center",
+            "enum": [
+              "center",
+              "left"
+            ],
+            "type": "string"
+          },
+          "style": {
+            "title": "Animation",
+            "default": "stack",
+            "enum": [
+              "stack",
+              "slam"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "kicker": "NEW VIDEO",
+        "title": "Make it move",
+        "subtitle": "",
+        "accent": "",
+        "align": "center",
+        "style": "stack"
+      }
+    },
+    {
+      "slug": "captions-pop",
+      "version": 1,
+      "name": "Pop captions",
+      "categories": [
+        "Kinetic type"
+      ],
+      "kind": "captions",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 1,
+      "maxDuration": 600,
+      "credit": null,
+      "isActive": true,
+      "sort": 2,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "title": "Position",
+            "default": "bottom",
+            "enum": [
+              "bottom",
+              "center",
+              "top"
+            ],
+            "type": "string"
+          },
+          "active_color": {
+            "title": "Active word colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "text_color": {
+            "title": "Text colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "default": "m",
+            "enum": [
+              "s",
+              "m",
+              "l"
+            ],
+            "type": "string"
+          },
+          "uppercase": {
+            "title": "Uppercase",
+            "default": true,
+            "type": "boolean"
+          },
+          "max_words": {
+            "title": "Words per line",
+            "default": 3,
+            "minimum": 1,
+            "maximum": 6,
+            "type": "number"
+          }
+        }
+      },
+      "defaultProps": {
+        "position": "bottom",
+        "active_color": "",
+        "text_color": "",
+        "size": "m",
+        "uppercase": true,
+        "max_words": 3
+      }
+    },
+    {
+      "slug": "lower-third",
+      "version": 1,
+      "name": "Lower third",
+      "categories": [
+        "Shapes"
+      ],
+      "kind": "overlay",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 3.5,
+      "minDuration": 1.5,
+      "maxDuration": 12,
+      "credit": null,
+      "isActive": true,
+      "sort": 3,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "default": "Your Name",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "default": "Creator · ClipPipeline",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "side": {
+            "title": "Side",
+            "default": "left",
+            "enum": [
+              "left",
+              "right"
+            ],
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "default": "bottom",
+            "enum": [
+              "bottom",
+              "top"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "name": "Your Name",
+        "role": "Creator · ClipPipeline",
+        "accent": "",
+        "side": "left",
+        "position": "bottom"
+      }
+    },
+    {
+      "slug": "cta-outro",
+      "version": 1,
+      "name": "Follow outro",
+      "categories": [
+        "Shapes"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 3,
+      "minDuration": 1.5,
+      "maxDuration": 8,
+      "credit": null,
+      "isActive": true,
+      "sort": 4,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "logo": {
+            "title": "Logo",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "handle": {
+            "title": "Handle",
+            "default": "@yourhandle",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "cta": {
+            "title": "Call to action",
+            "default": "Follow for more",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "logo": null,
+        "handle": "@yourhandle",
+        "cta": "Follow for more",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "captions-clean",
+      "version": 1,
+      "name": "Clean subtitles",
+      "categories": [
+        "Kinetic type"
+      ],
+      "kind": "captions",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 1,
+      "maxDuration": 600,
+      "credit": null,
+      "isActive": true,
+      "sort": 5,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "title": "Position",
+            "default": "bottom",
+            "enum": [
+              "bottom",
+              "top"
+            ],
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "default": "m",
+            "enum": [
+              "s",
+              "m",
+              "l"
+            ],
+            "type": "string"
+          },
+          "background": {
+            "title": "Box behind text",
+            "default": true,
+            "type": "boolean"
+          },
+          "text_color": {
+            "title": "Text colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "position": "bottom",
+        "size": "m",
+        "background": true,
+        "text_color": ""
+      }
+    },
+    {
+      "slug": "stat-counter",
+      "version": 1,
+      "name": "Stat counter",
+      "categories": [
+        "Charts"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 3,
+      "minDuration": 1.5,
+      "maxDuration": 10,
+      "credit": null,
+      "isActive": true,
+      "sort": 6,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "title": "Number",
+            "default": 1250,
+            "minimum": 0,
+            "maximum": 1000000000,
+            "type": "number"
+          },
+          "decimals": {
+            "title": "Decimals",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 2,
+            "type": "number"
+          },
+          "prefix": {
+            "title": "Prefix",
+            "default": "",
+            "maxLength": 4,
+            "type": "string"
+          },
+          "suffix": {
+            "title": "Suffix",
+            "default": "+",
+            "maxLength": 6,
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "default": "happy creators",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "value": 1250,
+        "decimals": 0,
+        "prefix": "",
+        "suffix": "+",
+        "label": "happy creators",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "bar-chart",
+      "version": 1,
+      "name": "Bar chart",
+      "categories": [
+        "Charts"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 2,
+      "maxDuration": 12,
+      "credit": null,
+      "isActive": true,
+      "sort": 7,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "title": "Title",
+            "default": "Views per platform",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "labels": {
+            "title": "Labels",
+            "default": [
+              "TikTok",
+              "Reels",
+              "Shorts",
+              "Facebook"
+            ],
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 14
+            }
+          },
+          "values": {
+            "title": "Values",
+            "default": [
+              "82",
+              "64",
+              "45",
+              "23"
+            ],
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 12
+            }
+          },
+          "unit": {
+            "title": "Unit",
+            "default": "k",
+            "maxLength": 6,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "title": "Views per platform",
+        "labels": [
+          "TikTok",
+          "Reels",
+          "Shorts",
+          "Facebook"
+        ],
+        "values": [
+          "82",
+          "64",
+          "45",
+          "23"
+        ],
+        "unit": "k",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "flow-diagram",
+      "version": 1,
+      "name": "Flow diagram",
+      "categories": [
+        "Diagrams"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4.5,
+      "minDuration": 2.5,
+      "maxDuration": 12,
+      "credit": null,
+      "isActive": true,
+      "sort": 8,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "title": "Title",
+            "default": "How it works",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "steps": {
+            "title": "Steps (3–5)",
+            "default": [
+              "Upload",
+              "Auto-cut",
+              "Add graphics",
+              "Post everywhere"
+            ],
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 24
+            }
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "title": "How it works",
+        "steps": [
+          "Upload",
+          "Auto-cut",
+          "Add graphics",
+          "Post everywhere"
+        ],
+        "accent": ""
+      }
+    },
+    {
+      "slug": "phone-mockup",
+      "version": 1,
+      "name": "Phone mockup",
+      "categories": [
+        "Phone",
+        "Product UI"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 2,
+      "maxDuration": 15,
+      "credit": null,
+      "isActive": true,
+      "sort": 9,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "clip": {
+            "title": "Video in the phone",
+            "format": "asset:video",
+            "default": null,
+            "type": "object"
+          },
+          "screenshot": {
+            "title": "Or a screenshot",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "caption": {
+            "title": "Caption",
+            "default": "Edit on your phone",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "clip": null,
+        "screenshot": null,
+        "caption": "Edit on your phone",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "ui-cursor-zoom",
+      "version": 1,
+      "name": "Cursor click zoom",
+      "categories": [
+        "Product UI"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 2.5,
+      "maxDuration": 12,
+      "credit": null,
+      "isActive": true,
+      "sort": 10,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "screenshot": {
+            "title": "Screenshot",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "click_x": {
+            "title": "Click position (left → right)",
+            "default": 0.68,
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number"
+          },
+          "click_y": {
+            "title": "Click position (top → bottom)",
+            "default": 0.42,
+            "minimum": 0,
+            "maximum": 1,
+            "type": "number"
+          },
+          "zoom": {
+            "title": "Zoom",
+            "default": 1.8,
+            "minimum": 1,
+            "maximum": 3,
+            "type": "number"
+          },
+          "caption": {
+            "title": "Caption",
+            "default": "One tap to publish",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "screenshot": null,
+        "click_x": 0.68,
+        "click_y": 0.42,
+        "zoom": 1.8,
+        "caption": "One tap to publish",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "photo-stack",
+      "version": 1,
+      "name": "Photo stack",
+      "categories": [
+        "Photos"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 5,
+      "minDuration": 2,
+      "maxDuration": 20,
+      "credit": null,
+      "isActive": true,
+      "sort": 11,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "photo1": {
+            "title": "Photo 1",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "photo2": {
+            "title": "Photo 2",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "photo3": {
+            "title": "Photo 3",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "photo4": {
+            "title": "Photo 4",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "caption": {
+            "title": "Caption",
+            "default": "Moments that matter",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "photo1": null,
+        "photo2": null,
+        "photo3": null,
+        "photo4": null,
+        "caption": "Moments that matter",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "audio-bars",
+      "version": 1,
+      "name": "Audio bars",
+      "categories": [
+        "Music"
+      ],
+      "kind": "overlay",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 6,
+      "minDuration": 1,
+      "maxDuration": 600,
+      "credit": null,
+      "isActive": true,
+      "sort": 12,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "title": "Bar colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "bars": {
+            "title": "Number of bars",
+            "default": 32,
+            "minimum": 8,
+            "maximum": 64,
+            "type": "number"
+          },
+          "position": {
+            "title": "Position",
+            "default": "bottom",
+            "enum": [
+              "bottom",
+              "center"
+            ],
+            "type": "string"
+          },
+          "style": {
+            "title": "Style",
+            "default": "mirror",
+            "enum": [
+              "bars",
+              "mirror"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "color": "",
+        "bars": 32,
+        "position": "bottom",
+        "style": "mirror"
+      }
+    },
+    {
+      "slug": "code-typing",
+      "version": 1,
+      "name": "Code typing",
+      "categories": [
+        "Code"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 5,
+      "minDuration": 2,
+      "maxDuration": 20,
+      "credit": null,
+      "isActive": true,
+      "sort": 13,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "title": "File name",
+            "default": "app.ts",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "default": "ts",
+            "enum": [
+              "ts",
+              "js",
+              "py",
+              "php",
+              "text"
+            ],
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "default": "const clip = await studio.cut(video)\nconst post = clip.addCaptions('pop')\nawait post.publish(['tiktok', 'reels'])",
+            "maxLength": 600,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "title": "app.ts",
+        "language": "ts",
+        "code": "const clip = await studio.cut(video)\nconst post = clip.addCaptions('pop')\nawait post.publish(['tiktok', 'reels'])",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "particle-burst",
+      "version": 1,
+      "name": "Particle burst",
+      "categories": [
+        "Particles"
+      ],
+      "kind": "transition",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 0.6,
+      "minDuration": 0.2,
+      "maxDuration": 1.5,
+      "credit": null,
+      "isActive": true,
+      "sort": 17,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "title": "Particle colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "count": {
+            "title": "Particles",
+            "default": 40,
+            "minimum": 10,
+            "maximum": 80,
+            "type": "number"
+          }
+        }
+      },
+      "defaultProps": {
+        "color": "",
+        "count": 40
+      }
+    },
+    {
+      "slug": "swipe",
+      "version": 1,
+      "name": "Swipe",
+      "categories": [
+        "Shapes"
+      ],
+      "kind": "transition",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 0.45,
+      "minDuration": 0.2,
+      "maxDuration": 1.5,
+      "credit": null,
+      "isActive": true,
+      "sort": 14,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "title": "Direction",
+            "default": "left",
+            "enum": [
+              "left",
+              "right",
+              "up",
+              "down"
+            ],
+            "type": "string"
+          },
+          "color": {
+            "title": "Panel colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "direction": "left",
+        "color": ""
+      }
+    },
+    {
+      "slug": "zoom-blur",
+      "version": 1,
+      "name": "Zoom blur",
+      "categories": [
+        "Shapes"
+      ],
+      "kind": "transition",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 0.4,
+      "minDuration": 0.2,
+      "maxDuration": 1.5,
+      "credit": null,
+      "isActive": true,
+      "sort": 15,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "strength": {
+            "title": "Strength",
+            "default": 0.5,
+            "minimum": 0.1,
+            "maximum": 1,
+            "type": "number"
+          }
+        }
+      },
+      "defaultProps": {
+        "strength": 0.5
+      }
+    },
+    {
+      "slug": "flash",
+      "version": 1,
+      "name": "Flash",
+      "categories": [
+        "Shapes"
+      ],
+      "kind": "transition",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 0.3,
+      "minDuration": 0.2,
+      "maxDuration": 1.5,
+      "credit": null,
+      "isActive": true,
+      "sort": 16,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "title": "Flash colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "color": ""
+      }
+    }
+  ]
+}

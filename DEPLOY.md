@@ -111,3 +111,63 @@ Until Google completes the **YouTube API Compliance Audit** for your Cloud proje
 uploads via the API are locked to **private** regardless of the privacy you choose.
 The app records this in the distribution `meta` and shows a notice. Request the
 audit in the Google Cloud console to enable public uploads.
+
+## Studio (video editing, templates) — docs/STUDIO_SPEC.md
+
+Studio adds Laravel endpoints (CONTRACT §17) plus a separate **render worker**. Laravel never runs
+ffmpeg, Chromium or Whisper: the worker (any Linux machine with outbound HTTPS, e.g. the 12 GB home
+server) pulls jobs, renders, and uploads results.
+
+### 1. Server (Laravel)
+
+```bash
+php artisan migrate --force            # creates the studio_* tables (no data changes)
+php artisan studio:worker-token        # prints the worker token once; keep it for step 2
+php artisan studio:templates-sync      # registers templates from motion/dist/templates.json, queues gallery previews
+```
+
+Env (`.env`, see `.env.example`): `STUDIO_ENABLED=true`, `STUDIO_LINK_FETCHER=off`, `STUDIO_AI_ENABLED=false`,
+`ANTHROPIC_API_KEY=`, `STUDIO_AI_MODEL=`, `STUDIO_MAX_UPLOAD_MB=500`, `STUDIO_MAX_SOURCE_MINUTES=10`.
+
+**PHP upload limits apply to the worker too.** Rendered videos are uploaded back to
+`/api/worker/jobs/{id}/complete`, so `upload_max_filesize` / `post_max_size` (hPanel → PHP options, see
+"Large video uploads" above) must be at least `STUDIO_MAX_UPLOAD_MB`. If they are lower, the worker logs
+"the server rejected the file size".
+
+Cron: the existing `schedule:run` entry runs the new commands from `routes/console.php`:
+`studio:requeue-stale` (every minute), `studio:prune` (daily 04:10), `studio:templates-sync` (daily 04:40).
+
+### 2. Render worker (Linux)
+
+Docker (simplest):
+
+```bash
+git clone … clippipeline && cd clippipeline
+cp render-worker/.env.example render-worker/.env    # set CLIPPIPELINE_WORKER_TOKEN (keep the quotes)
+docker build -f render-worker/Dockerfile -t clippipeline-render .
+docker run -d --restart unless-stopped --env-file render-worker/.env \
+  -v clippipeline-cache:/var/cache/clippipeline-render --name clippipeline-render clippipeline-render
+docker logs -f clippipeline-render
+```
+
+systemd (no Docker): install Node 22, `ffmpeg` (with `zscale`), Python 3 and
+`python3 -m venv /opt/clippipeline/venv && /opt/clippipeline/venv/bin/pip install faster-whisper`, then
+
+```bash
+cd /opt/clippipeline/motion && npm install
+cd /opt/clippipeline/render-worker && npm install && cp .env.example .env   # PYTHON=/opt/clippipeline/venv/bin/python
+sudo cp clippipeline-render.service /etc/systemd/system/ && sudo systemctl enable --now clippipeline-render
+```
+
+Defaults: `WORKER_CONCURRENCY=1`, Remotion uses half the CPU cores. The first transcription downloads the
+Whisper model (`STUDIO_WHISPER_MODEL=small`, ~500 MB) into the cache. Set `ELEVENLABS_API_KEY` on the worker
+to use ElevenLabs Scribe instead (better on Nigerian accents and Pidgin).
+
+`php artisan app:health` now shows when the worker was last seen and the queued/failed Studio jobs.
+
+### 3. Remotion licence
+
+Remotion is free for individuals and companies of up to **3 people**, including a SaaS where users
+render our templates with their own data. At **4+ people** a Remotion **Company License** is required
+(the "Automators" plan: per-render pricing with a monthly minimum). Users never upload Remotion/JS code
+and the server never generates component code; AI only fills template props.

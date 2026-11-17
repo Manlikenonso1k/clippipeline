@@ -63,6 +63,24 @@ class StudioWorkerApiTest extends StudioTestCase
         $this->assertCount(1, $p->refresh()->edl['main']);
     }
 
+    public function test_new_clips_are_inserted_before_the_outro(): void
+    {
+        $p = $this->project();
+        $edl = $p->edl;
+        $edl['main'] = [
+            ['id' => 'intro', 'type' => 'template', 'template' => 'kinetic-title', 'version' => 1, 'duration' => 2, 'props' => []],
+            ['id' => 'outro', 'type' => 'template', 'template' => 'cta-outro', 'version' => 1, 'duration' => 3, 'props' => [], 'slot' => 'outro'],
+        ];
+        $p->forceFill(['edl' => $edl])->save();
+        $a = $this->readyAsset($p, ['status' => 'processing']);
+        $job = app(JobQueue::class)->dispatch('probe', $this->user->id, $p->id, $a->id);
+        $this->asWorker();
+        $this->postJson('/api/worker/claim', ['worker_id' => 'w1']);
+        $this->post("/api/worker/jobs/{$job->id}/complete", ['result' => json_encode(['duration' => 5, 'has_audio' => false])], ['Accept' => 'application/json'])->assertOk();
+
+        $this->assertSame(['intro', 'clip', 'outro'], array_map(fn ($s) => $s['type'] === 'clip' ? 'clip' : $s['id'], $p->refresh()->edl['main']));
+    }
+
     public function test_too_long_source_is_rejected(): void
     {
         $p = $this->project();

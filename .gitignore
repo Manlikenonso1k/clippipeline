@@ -26,3 +26,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Studio (motion/ and render-worker/ have their own npm installs)
+/motion/node_modules
+/motion/out
+/render-worker/node_modules
+/render-worker/.env

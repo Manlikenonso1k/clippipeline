@@ -1,0 +1,32 @@
+{
+  "name": "clippipeline-motion",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ClipPipeline Studio motion graphics: EditTimeline + parameterised templates (Remotion).",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "templates:build": "tsx scripts/build-registry.ts",
+    "typecheck": "tsc --noEmit",
+    "check:remotion": "node ../scripts/check-remotion.mjs"
+  },
+  "dependencies": {
+    "@fontsource/inter": "5.2.8",
+    "@fontsource/jetbrains-mono": "5.2.8",
+    "@remotion/cli": "4.0.541",
+    "@remotion/fonts": "4.0.541",
+    "@remotion/media": "4.0.541",
+    "@remotion/media-utils": "4.0.541",
+    "@remotion/transitions": "4.0.541",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.541",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.13",
+    "@types/react": "19.2.2",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

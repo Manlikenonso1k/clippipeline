@@ -1,0 +1,25 @@
+# systemd unit for the Studio render worker (Linux home server or VPS).
+#   sudo cp render-worker/clippipeline-render.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now clippipeline-render
+#   journalctl -u clippipeline-render -f
+[Unit]
+Description=ClipPipeline Studio render worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=clippipeline
+WorkingDirectory=/opt/clippipeline/render-worker
+EnvironmentFile=/opt/clippipeline/render-worker/.env
+ExecStart=/usr/bin/npx tsx src/index.ts
+Restart=always
+RestartSec=10
+# SIGTERM lets running jobs finish (their leases are renewed while they run).
+KillSignal=SIGTERM
+TimeoutStopSec=900
+Nice=5
+MemoryMax=10G
+
+[Install]
+WantedBy=multi-user.target
