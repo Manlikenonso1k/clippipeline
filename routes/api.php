@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\DistributionController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PasswordAuthController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\TikTokController;
@@ -30,6 +31,13 @@ use Illuminate\Support\Facades\Route;
 // Contract: docs/CONTRACT.md. Agents edit only inside their own marked block.
 
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+// --- agent:accounts (public) ---
+// Email accounts (CONTRACT §18): create account, forgot / reset password.
+Route::post('/auth/register', [PasswordAuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('/auth/forgot-password', [PasswordAuthController::class, 'forgot'])->middleware('throttle:5,1');
+Route::post('/auth/reset-password', [PasswordAuthController::class, 'reset'])->middleware('throttle:10,1');
+// --- end agent:accounts (public) ---
 Route::post('/auth/google/token', [AuthController::class, 'googleToken']);
 Route::post('/auth/facebook/token', [AuthController::class, 'facebookToken']);
 Route::post('/auth/tiktok/token', [AuthController::class, 'tiktokToken']);
@@ -62,6 +70,7 @@ Route::middleware(EnsureStudioEnabled::class)->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/me/password', [PasswordAuthController::class, 'change'])->middleware('throttle:10,1');
     Route::delete('/device-tokens', [DeviceTokenController::class, 'destroy']);
 
     // --- agent:connect ---

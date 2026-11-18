@@ -6,6 +6,7 @@ use App\Filament\Resources\Posts\Tables\PostsTable;
 use App\Models\User;
 use App\Services\Account\AccountDeletionService;
 use App\Services\Account\MeService;
+use App\Services\Account\PasswordService;
 use App\Services\Account\PreferencesService;
 use App\Services\Analytics\ExportService;
 use App\Services\AnalyticsService;
@@ -150,6 +151,28 @@ class Profile extends Page
                 return response()->streamDownload(function () use ($csv): void {
                     echo $csv;
                 }, ExportService::filename($period), ['Content-Type' => 'text/csv']);
+            });
+    }
+
+    public function changePasswordAction(): Action
+    {
+        $has = app(PasswordService::class)->hasPassword($this->user());
+
+        return Action::make('changePassword')
+            ->label($has ? 'Change password' : 'Set a password')
+            ->icon(Heroicon::OutlinedKey)
+            ->color('gray')
+            ->modalHeading($has ? 'Change your password' : 'Set a password')
+            ->modalDescription($has ? null : 'You signed up with Google, Facebook or TikTok. Set a password to also sign in with your email.')
+            ->modalSubmitActionLabel('Save password')
+            ->schema(array_values(array_filter([
+                $has ? TextInput::make('current_password')->label('Current password')->password()->revealable()->required() : null,
+                TextInput::make('password')->label('New password')->password()->revealable()->required()->minLength(PasswordService::MIN_LENGTH)->confirmed(),
+                TextInput::make('password_confirmation')->label('Repeat new password')->password()->revealable()->required(),
+            ])))
+            ->action(function (array $data, PasswordService $passwords): void {
+                $passwords->change($this->user(), $data['current_password'] ?? null, $data['password']);
+                Notification::make()->title('Password updated')->success()->send();
             });
     }
 

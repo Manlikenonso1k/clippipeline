@@ -49,6 +49,7 @@ class SocialUserResolver
             'email' => $email,
             'avatar' => $avatar,
             'password' => Hash::make(Str::random(24)),
+            'password_is_random' => true,
         ]);
     }
 
@@ -76,6 +77,7 @@ class SocialUserResolver
             'email' => $email ?: 'fb_'.$id.'@users.clippipeline.app',
             'avatar' => $avatar,
             'password' => Hash::make(Str::random(24)),
+            'password_is_random' => true,
         ]);
     }
 
@@ -99,6 +101,7 @@ class SocialUserResolver
             'email' => 'tiktok_'.$openId.'@users.clippipeline.app',
             'avatar' => $avatar,
             'password' => Hash::make(Str::random(24)),
+            'password_is_random' => true,
         ]);
     }
 }

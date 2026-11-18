@@ -590,3 +590,18 @@ interface StudioRecipe { status: 'waiting' | 'rendering' | 'done' | 'failed'; er
 
 EDL v2 additions: `theme.display` (headline font), `grade`, `sfx`, and `music[].library` (instead of `asset_id`).
 Publishing uses `POST /studio/renders/{id}/cross-post` with `recipe.caption` / `recipe.hashtags` as defaults.
+
+## 18. Email accounts (create account, forgot / reset / change password)
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST (public) | `/auth/register` | `{name, email, password, password_confirmation}` (8+ chars) | 201 `{token, user}` (same as `/auth/login`); 422 `email` if the account exists (sign in, or use forgot password — social accounts start without a usable password) |
+| POST (public) | `/auth/forgot-password` | `{email}` | 200 `{message}` always (no account enumeration). Emails a link to the website reset page `/admin/password-reset/reset?...` (60 min) |
+| POST (public) | `/auth/reset-password` | `{token, email, password, password_confirmation}` | 200 `{message}`; 422 `token` when invalid/expired |
+| PUT | `/me/password` | `{current_password?, password, password_confirmation}` | 200 `{message, has_password: true}`; `current_password` required unless `user.has_password` is false |
+
+`GET /me` → `user.has_password: boolean` (false for Google/Facebook/TikTok accounts that never set a password;
+those get a random password nobody knows, flagged `users.password_is_random`).
+Website (Filament): `/admin/register`, `/admin/password-reset/request`, Profile → Password.
+Server: `php artisan app:set-password {email} [--create]` asks for the password hidden.
+Throttles: register 10/min, forgot 5/min, reset 10/min, change 10/min.

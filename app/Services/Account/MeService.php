@@ -24,6 +24,7 @@ class MeService
                 'name' => $user->name,
                 'email' => $user->email,
                 'avatar' => $user->avatar,
+                'has_password' => app(PasswordService::class)->hasPassword($user),
             ],
             'server_time' => now()->toIso8601String(),
             'plan' => $this->plan($user),

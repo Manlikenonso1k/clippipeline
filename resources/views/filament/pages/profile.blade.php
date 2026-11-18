@@ -30,6 +30,11 @@
         </dl>
     </x-filament::section>
 
+    <x-filament::section heading="Password">
+        <p style="font-size: 0.875rem; margin-bottom: 0.75rem;">Use a password to sign in with your email in the app and on the website.</p>
+        {{ $this->changePasswordAction }}
+    </x-filament::section>
+
     <x-filament::section heading="Your data">
         <p style="font-size: 0.875rem; margin-bottom: 0.75rem;">Download per-post analytics as a CSV file.</p>
         {{ $this->exportCsvAction }}

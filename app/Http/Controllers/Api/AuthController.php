@@ -137,6 +137,7 @@ class AuthController extends Controller
                 'email' => 'tiktok_'.$socialUser->getId().'@users.clippipeline.app',
                 'avatar' => $socialUser->getAvatar(),
                 'password' => Hash::make(Str::random(24)),
+                'password_is_random' => true,
             ]);
         }
 

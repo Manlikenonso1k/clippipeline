@@ -171,3 +171,27 @@ Remotion is free for individuals and companies of up to **3 people**, including 
 render our templates with their own data. At **4+ people** a Remotion **Company License** is required
 (the "Automators" plan: per-render pricing with a monthly minimum). Users never upload Remotion/JS code
 and the server never generates component code; AI only fills template props.
+
+## Email accounts (create account, forgot password) — CONTRACT §18
+
+`php artisan migrate --force` adds `users.password_is_random` (existing Google/Facebook/TikTok accounts are flagged so
+they can set a password without an old one).
+
+**Reset emails need real mail settings** in `.env` (the default `MAIL_MAILER=log` only writes them to the log). With a
+Hostinger mailbox (hPanel → Emails), for example:
+
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.hostinger.com
+MAIL_PORT=465
+MAIL_SCHEME=smtps
+MAIL_USERNAME=no-reply@nonsostudio.com
+MAIL_PASSWORD=the-mailbox-password
+MAIL_FROM_ADDRESS=no-reply@nonsostudio.com
+MAIL_FROM_NAME="ClipPipeline"
+```
+
+Then `php artisan config:clear`. Test it from the app (Forgot password?) or the website (`/admin/password-reset/request`).
+
+Set a password for someone from the server (asked hidden, never echoed or logged):
+`php artisan app:set-password you@example.com` (add `--create` to make the account).
