@@ -3,7 +3,7 @@ import { AbsoluteFill, Img, interpolate, random, useCurrentFrame, useVideoConfig
 import type { z } from 'zod';
 import { pick, theme } from '../../theme';
 import { useTemplate } from '../ctx';
-import { accent2, displayFont, gradientText, tint } from '../fx';
+import { accent2, displayFont, displayScale, displayWeight, gradientText, tint } from '../fx';
 import { clamp } from '../kit';
 import type { schema } from './schema';
 
@@ -47,9 +47,9 @@ export const Template: React.FC<{ props: z.output<typeof schema> }> = ({ props }
 
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', paddingBottom: 140 * unit, gap: 26 * unit }}>
         <div style={{ width: 260 * unit, height: 260 * unit, borderRadius: 64 * unit, overflow: 'hidden', scale: String(at(0.15, 0.5)), rotate: `${(1 - at(0.15, 0.5)) * 12}deg`, background: logo ? 'transparent' : `linear-gradient(135deg, ${a}, ${b})`, boxShadow: `0 ${20 * unit}px ${60 * unit}px ${a}AA`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {logo ? <Img src={logo.src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontFamily: font, fontSize: 150 * unit, color: '#FFFFFF' }}>{(props.title[0] || '★').toUpperCase()}</div>}
+          {logo ? <Img src={logo.src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontFamily: font, fontWeight: displayWeight(ctx), fontSize: 150 * unit, color: '#FFFFFF' }}>{(props.title[0] || '★').toUpperCase()}</div>}
         </div>
-        <div style={{ ...enter(0.4), fontFamily: font, fontSize: (props.title.length > 14 ? 120 : 160) * unit, lineHeight: 1, textTransform: 'uppercase', ...gradientText(tint(a, 0.35), a, b), filter: `drop-shadow(0 ${6 * unit}px 0 ${ctx.theme.bg})` }}>{props.title}</div>
+        <div style={{ ...enter(0.4), fontFamily: font, fontWeight: displayWeight(ctx), fontSize: (props.title.length > 14 ? 120 : 160) * unit, lineHeight: 1, textTransform: 'uppercase', ...gradientText(tint(a, 0.35), a, b), filter: `drop-shadow(0 ${6 * unit}px 0 ${ctx.theme.bg})` }}>{props.title}</div>
         {props.subtitle ? <div style={{ ...enter(0.55), fontFamily: theme.fonts.body, fontWeight: 900, fontSize: 40 * unit, letterSpacing: 14 * unit, textTransform: 'uppercase', color: '#FFFFFF' }}>{props.subtitle}</div> : null}
         {props.items.filter(Boolean).length ? (
           <div style={{ display: 'flex', gap: 18 * unit, flexWrap: 'wrap', justifyContent: 'center' }}>

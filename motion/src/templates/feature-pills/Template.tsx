@@ -3,7 +3,7 @@ import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remo
 import type { z } from 'zod';
 import { pick, theme } from '../../theme';
 import { useTemplate } from '../ctx';
-import { accent2, displayFont, gradientText, tint } from '../fx';
+import { accent2, displayFont, displayScale, displayWeight, gradientText, tint } from '../fx';
 import { clamp } from '../kit';
 import type { schema } from './schema';
 
@@ -24,7 +24,7 @@ export const Template: React.FC<{ props: z.output<typeof schema> }> = ({ props }
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'flex-start', paddingTop: (aspect === '9:16' ? 110 : 60) * unit, gap: 18 * unit, opacity: out }}>
       {props.title ? (
-        <div style={{ fontFamily: displayFont(ctx), fontSize: 110 * unit, textTransform: 'uppercase', color: '#FFFFFF', opacity: t, translate: `0px ${(1 - t) * 40 * unit}px`, textShadow: `0 ${6 * unit}px 0 rgba(0,0,0,0.5)` }}>
+        <div style={{ fontFamily: displayFont(ctx), fontWeight: displayWeight(ctx), fontSize: 110 * unit, textTransform: 'uppercase', color: '#FFFFFF', opacity: t, translate: `0px ${(1 - t) * 40 * unit}px`, textShadow: `0 ${6 * unit}px 0 rgba(0,0,0,0.5)` }}>
           {props.title.split(' ').slice(0, -1).join(' ')} <span style={gradientText(tint(a, 0.35), a, b)}>{props.title.split(' ').slice(-1)[0]}</span>
         </div>
       ) : null}

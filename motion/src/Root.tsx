@@ -6,6 +6,7 @@ import { TEMPLATES } from './templates/registry';
 import { EditTimeline, type EditTimelineProps } from './timeline/EditTimeline';
 import type { TemplateDef } from './templates/types';
 import { DEFAULT_PROJECT_THEME } from './theme';
+import { StylePreview } from './StylePreview';
 
 type TimelineInput = EditTimelineProps & { quality?: 'preview' | 'final' };
 
@@ -68,6 +69,7 @@ export const Root: React.FC = () => (
       defaultProps={{ edl: DEMO_EDL, assets: {}, transcripts: {}, quality: 'final' } as TimelineInput}
       calculateMetadata={timelineMetadata}
     />
+    <Composition id="StylePreview" component={StylePreview} durationInFrames={120} fps={30} width={1080} height={1920} defaultProps={{ style: 'vice-night' }} />
     {TEMPLATES.map(templateComposition)}
   </>
 );

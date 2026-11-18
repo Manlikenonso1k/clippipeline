@@ -4,6 +4,9 @@ import { theme } from '../theme';
 import type { TemplateCtx } from './types';
 
 export const displayFont = (ctx: TemplateCtx) => ctx.theme.display || 'Anton';
+/** Anton ships one (heavy) weight; any other display font is set in its black weight, a bit smaller (wider letters). */
+export const displayWeight = (ctx: TemplateCtx) => (displayFont(ctx) === 'Anton' ? 400 : 900);
+export const displayScale = (ctx: TemplateCtx) => (displayFont(ctx) === 'Anton' ? 1 : 0.72);
 export const accent2 = (ctx: TemplateCtx) => ctx.theme.accent2 || theme.colors.primary2;
 
 export const gradientText = (top: string, mid: string, bottom: string): React.CSSProperties => ({

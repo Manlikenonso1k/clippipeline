@@ -3,7 +3,7 @@ import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remo
 import type { z } from 'zod';
 import { pick, theme } from '../../theme';
 import { useTemplate } from '../ctx';
-import { accent2, displayFont, gradientText, tint } from '../fx';
+import { accent2, displayFont, displayScale, displayWeight, gradientText, tint } from '../fx';
 import { clamp } from '../kit';
 import type { schema } from './schema';
 
@@ -23,9 +23,9 @@ export const Template: React.FC<{ props: z.output<typeof schema> }> = ({ props }
   const words = props.text.split(/\s+/).filter(Boolean);
   const hl = props.highlight.trim().toLowerCase();
   const long = props.text.length > 14;
-  const size = (props.style === 'slam' ? (long ? 170 : 280) : long ? 130 : 170) * unit * (aspect === '16:9' ? 0.8 : 1);
+  const size = (props.style === 'slam' ? (long ? 170 : 280) : long ? 130 : 170) * unit * (aspect === '16:9' ? 0.8 : 1) * displayScale(ctx);
 
-  const base: React.CSSProperties = { fontFamily: font, fontSize: size, lineHeight: 0.98, textTransform: 'uppercase', color: '#FFFFFF', textAlign: 'center' };
+  const base: React.CSSProperties = { fontFamily: font, fontWeight: displayWeight(ctx), fontSize: size, lineHeight: 0.98, textTransform: 'uppercase', color: '#FFFFFF', textAlign: 'center' };
   const motion: React.CSSProperties =
     props.style === 'slam'
       ? { scale: String(2 - p), opacity: Math.min(1, p * 1.6) * out, filter: `blur(${(1 - p) * 12}px)` }

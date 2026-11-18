@@ -3,7 +3,7 @@ import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remo
 import type { z } from 'zod';
 import { pick, theme } from '../../theme';
 import { useTemplate } from '../ctx';
-import { displayFont, tint } from '../fx';
+import { displayFont, displayScale, displayWeight, tint } from '../fx';
 import { clamp } from '../kit';
 import type { schema } from './schema';
 
@@ -21,7 +21,7 @@ export const Template: React.FC<{ props: z.output<typeof schema> }> = ({ props }
   const value = Math.round(props.value * p).toLocaleString('en-US');
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'flex-start', paddingTop: (aspect === '9:16' ? 520 : 360) * unit, opacity: show }}>
-      <div style={{ fontFamily: displayFont(ctx), fontSize: 120 * unit, color: tint(a, 0.25), fontVariantNumeric: 'tabular-nums', textShadow: `0 0 ${30 * unit}px ${a}, 0 ${6 * unit}px 0 rgba(0,0,0,0.6)`, scale: String(0.85 + 0.15 * p) }}>
+      <div style={{ fontFamily: displayFont(ctx), fontWeight: displayWeight(ctx), fontSize: 120 * unit, color: tint(a, 0.25), fontVariantNumeric: 'tabular-nums', textShadow: `0 0 ${30 * unit}px ${a}, 0 ${6 * unit}px 0 rgba(0,0,0,0.6)`, scale: String(0.85 + 0.15 * p) }}>
         {props.prefix}
         {value}
       </div>
