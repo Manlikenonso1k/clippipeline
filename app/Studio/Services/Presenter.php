@@ -29,6 +29,7 @@ class Presenter
             'has_style_profile' => $p->style_profile !== null,
             'can_undo_auto_cut' => $p->edl_previous !== null,
             'last_render' => $render ? $this->render($render) : null,
+            'recipe' => $p->recipe,
             'created_at' => $p->created_at?->toIso8601String(),
             'updated_at' => $p->updated_at?->toIso8601String(),
         ];

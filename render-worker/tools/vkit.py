@@ -473,7 +473,13 @@ def transcribe_whisper(wav: Path, model_name: str, language: str | None) -> dict
         log(f"   loading Whisper model '{model_name}' (first run downloads it)...")
         _WHISPER = (model_name, WhisperModel(model_name, device="auto", compute_type="int8"))
     model = _WHISPER[1]
-    segs, info = model.transcribe(str(wav), language=language, word_timestamps=True, vad_filter=True,
+    # Decode the 16 kHz mono WAV ourselves: newer PyAV releases break faster-whisper's own decoder
+    # (av.open() lost the metadata_errors argument).
+    import wave as _wave
+    import numpy as _np
+    with _wave.open(str(wav)) as w:
+        audio = _np.frombuffer(w.readframes(w.getnframes()), dtype=_np.int16).astype(_np.float32) / 32768
+    segs, info = model.transcribe(audio, language=language, word_timestamps=True, vad_filter=True,
                                   beam_size=5, condition_on_previous_text=False)
     words = []
     for s in segs:

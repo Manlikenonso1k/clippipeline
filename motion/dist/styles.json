@@ -1,0 +1,199 @@
+{
+  "styles": [
+    {
+      "slug": "vice-night",
+      "name": "Vice Night",
+      "description": "Neon pink and purple, bold headlines on key words, word-pop captions, punch-in zooms, sound effects.",
+      "theme": {
+        "accent": "#FF2D95",
+        "accent2": "#8B3DFF",
+        "bg": "#0E0418",
+        "text": "#FFFFFF",
+        "font": "Inter",
+        "display": "Anton"
+      },
+      "grade": "vice-night",
+      "sfx": true,
+      "captions": {
+        "template": "captions-bold",
+        "props": {}
+      },
+      "hook": {
+        "template": "hook-headline"
+      },
+      "headlines": {
+        "template": "pop-headline",
+        "styles": [
+          "box",
+          "gradient",
+          "echo",
+          "slam"
+        ],
+        "every_seconds": 3.8,
+        "max": 8
+      },
+      "outro": {
+        "template": "neon-outro",
+        "props": {
+          "show_chart": true
+        }
+      },
+      "transition": "flash",
+      "punch_in": true,
+      "music": "neon-drive"
+    },
+    {
+      "slug": "lagos-glow",
+      "name": "Lagos Glow",
+      "description": "Warm grade, green and gold accents, bold captions, amapiano groove.",
+      "theme": {
+        "accent": "#1FD17A",
+        "accent2": "#FFC93C",
+        "bg": "#07140D",
+        "text": "#FFFFFF",
+        "font": "Inter",
+        "display": "Anton"
+      },
+      "grade": "warm",
+      "sfx": true,
+      "captions": {
+        "template": "captions-bold",
+        "props": {}
+      },
+      "hook": {
+        "template": "hook-headline"
+      },
+      "headlines": {
+        "template": "pop-headline",
+        "styles": [
+          "box",
+          "slam",
+          "gradient"
+        ],
+        "every_seconds": 4.5,
+        "max": 6
+      },
+      "outro": {
+        "template": "neon-outro",
+        "props": {
+          "show_chart": false
+        }
+      },
+      "transition": "swipe",
+      "punch_in": true,
+      "music": "lagos-glow"
+    },
+    {
+      "slug": "bold-pop",
+      "name": "Bold Pop",
+      "description": "High contrast, yellow and red, slam headlines and fast energy.",
+      "theme": {
+        "accent": "#FFE500",
+        "accent2": "#FF3B3B",
+        "bg": "#0A0A0A",
+        "text": "#FFFFFF",
+        "font": "Inter",
+        "display": "Anton"
+      },
+      "grade": "punch",
+      "sfx": true,
+      "captions": {
+        "template": "captions-pop",
+        "props": {
+          "uppercase": true,
+          "max_words": 3
+        }
+      },
+      "hook": {
+        "template": "hook-headline"
+      },
+      "headlines": {
+        "template": "pop-headline",
+        "styles": [
+          "slam",
+          "box"
+        ],
+        "every_seconds": 3.5,
+        "max": 8
+      },
+      "outro": {
+        "template": "neon-outro",
+        "props": {
+          "show_chart": true
+        }
+      },
+      "transition": "zoom-blur",
+      "punch_in": true,
+      "music": "night-run"
+    },
+    {
+      "slug": "clean-pro",
+      "name": "Clean Pro",
+      "description": "Calm and professional: clean subtitles, a few headlines, no sound effects.",
+      "theme": {
+        "accent": "#00D1C1",
+        "accent2": "#2A6FFF",
+        "bg": "#0B0F14",
+        "text": "#FFFFFF",
+        "font": "Inter",
+        "display": "Inter"
+      },
+      "grade": "none",
+      "sfx": false,
+      "captions": {
+        "template": "captions-clean",
+        "props": {
+          "background": true
+        }
+      },
+      "hook": {
+        "template": "hook-headline"
+      },
+      "headlines": {
+        "template": "pop-headline",
+        "styles": [
+          "box"
+        ],
+        "every_seconds": 6,
+        "max": 4
+      },
+      "outro": {
+        "template": "cta-outro",
+        "props": {}
+      },
+      "transition": null,
+      "punch_in": false,
+      "music": "chill-tape"
+    }
+  ],
+  "music": [
+    {
+      "slug": "neon-drive",
+      "name": "Neon Drive",
+      "mood": "Synthwave · night city",
+      "bpm": 105,
+      "seconds": 60
+    },
+    {
+      "slug": "night-run",
+      "name": "Night Run",
+      "mood": "Dark · driving",
+      "bpm": 122,
+      "seconds": 60
+    },
+    {
+      "slug": "lagos-glow",
+      "name": "Lagos Glow",
+      "mood": "Amapiano groove",
+      "bpm": 112,
+      "seconds": 60
+    },
+    {
+      "slug": "chill-tape",
+      "name": "Chill Tape",
+      "mood": "Lo-fi · relaxed",
+      "bpm": 84,
+      "seconds": 60
+    }
+  ]
+}

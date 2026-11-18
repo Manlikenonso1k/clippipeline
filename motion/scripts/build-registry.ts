@@ -1,9 +1,10 @@
 // npm run templates:build — validates every template and writes dist/templates.json (CONTRACT §17.1 schema subset).
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { TEMPLATES } from '../src/templates/registry';
+import { MUSIC, STYLES } from '../src/styles';
+import { getTemplate, TEMPLATES } from '../src/templates/registry';
 import { CATEGORIES } from '../src/templates/types';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -57,6 +58,16 @@ const templates = TEMPLATES.map((t) => {
   };
 });
 
+for (const st of STYLES) {
+  for (const slug of [st.captions.template, st.hook?.template, st.headlines?.template, st.outro?.template, st.transition].filter(Boolean) as string[]) {
+    if (!getTemplate(slug)) errors.push(`style ${st.slug}: unknown template ${slug}`);
+  }
+  if (st.music && !MUSIC.some((m) => m.slug === st.music)) errors.push(`style ${st.slug}: unknown music ${st.music}`);
+}
+for (const m of MUSIC) {
+  if (!existsSync(join(here, '..', 'public', 'music', `${m.slug}.mp3`))) errors.push(`music ${m.slug}: public/music/${m.slug}.mp3 is missing`);
+}
+
 if (errors.length) {
   console.error('Template validation failed:\n  ' + errors.join('\n  '));
   process.exit(1);
@@ -65,4 +76,5 @@ if (errors.length) {
 const dest = join(here, '..', 'dist', 'templates.json');
 mkdirSync(dirname(dest), { recursive: true });
 writeFileSync(dest, JSON.stringify({ generated_at: new Date().toISOString().slice(0, 10), templates }, null, 2) + '\n');
-console.log(`templates:build — ${templates.length} templates OK → dist/templates.json`);
+writeFileSync(join(here, '..', 'dist', 'styles.json'), JSON.stringify({ styles: STYLES, music: MUSIC }, null, 2) + '\n');
+console.log(`templates:build — ${templates.length} templates, ${STYLES.length} styles, ${MUSIC.length} tracks OK → dist/templates.json, dist/styles.json`);

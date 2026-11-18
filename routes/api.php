@@ -13,11 +13,14 @@ use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\TikTokController;
 use App\Studio\Http\Controllers\AssetController as StudioAssetController;
+use App\Studio\Http\Controllers\ExpressController as StudioExpressController;
 use App\Studio\Http\Controllers\FileController as StudioFileController;
 use App\Studio\Http\Controllers\JobController as StudioJobController;
 use App\Studio\Http\Controllers\ProjectController as StudioProjectController;
 use App\Studio\Http\Controllers\RenderController as StudioRenderController;
+use App\Studio\Http\Controllers\StyleController as StudioStyleController;
 use App\Studio\Http\Controllers\TemplateController as StudioTemplateController;
+use App\Studio\Http\Controllers\TrendController as StudioTrendController;
 use App\Studio\Http\Controllers\UsageController as StudioUsageController;
 use App\Studio\Http\Controllers\WorkerController as StudioWorkerController;
 use App\Studio\Http\Middleware\EnsureStudioEnabled;
@@ -51,6 +54,9 @@ Route::middleware(EnsureStudioEnabled::class)->group(function () {
         ->whereIn('kind', ['asset', 'render'])->whereNumber('id')->middleware('signed')->name('studio.file');
     Route::get('/studio/templates', [StudioTemplateController::class, 'index']);
     Route::get('/studio/templates/{slug}', [StudioTemplateController::class, 'show']);
+    Route::get('/studio/styles', [StudioStyleController::class, 'index']);
+    Route::get('/studio/music/{slug}.mp3', [StudioStyleController::class, 'music'])->where('slug', '[a-z0-9-]+')->name('studio.music');
+    Route::get('/studio/trends', [StudioTrendController::class, 'index']);
 });
 // --- end agent:studio (public) ---
 
@@ -94,6 +100,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- agent:studio ---
     // Studio (docs/STUDIO_SPEC.md, CONTRACT §17).
     Route::middleware(EnsureStudioEnabled::class)->prefix('studio')->group(function () {
+        Route::post('/express', [StudioExpressController::class, 'store'])->middleware('throttle:20,1');
+        Route::post('/projects/{id}/express', [StudioExpressController::class, 'remake'])->middleware('throttle:20,1');
         Route::get('/projects', [StudioProjectController::class, 'index']);
         Route::post('/projects', [StudioProjectController::class, 'store'])->middleware('throttle:30,1');
         Route::get('/projects/{id}', [StudioProjectController::class, 'show']);

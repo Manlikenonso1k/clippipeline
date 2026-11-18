@@ -53,8 +53,12 @@ class JobCompletion
         });
 
         if (in_array($job->type, ['render_preview', 'render_final'], true) && isset($stored['render_id'])) {
-            $this->push($job, 'Your video is ready', ($job->project?->title ?: 'Studio project').' finished rendering. Tap to watch or download.', ['render_id' => $stored['render_id']]);
+            if (! empty($job->input['express']) && $job->project) {
+                app(ExpressBuilder::class)->setStatus($job->project, 'done', null, ['render_id' => $stored['render_id']]);
+            }
+            $this->push($job, 'Your video is ready', ($job->project?->title ?: 'Studio project').' finished rendering. Tap to download or publish.', ['render_id' => $stored['render_id']]);
         }
+        $this->continueExpress($job);
 
         return $job->refresh();
     }
@@ -85,10 +89,25 @@ class JobCompletion
             $asset->forceFill(['status' => 'failed', 'error' => mb_substr($error, 0, 500)])->save();
         }
         if (in_array($job->type, ['render_preview', 'render_final'], true)) {
+            if (! empty($job->input['express']) && $job->project) {
+                app(ExpressBuilder::class)->setStatus($job->project, 'failed', 'Rendering failed: '.mb_substr($error, 0, 300));
+            }
             $this->push($job, 'Render failed', ($job->project?->title ?: 'Studio project').': '.mb_substr($error, 0, 120));
         }
+        $this->continueExpress($job);
 
         return $job;
+    }
+
+    /** "Make a video": build the edit as soon as clips are processed and transcribed. */
+    private function continueExpress(StudioJob $job): void
+    {
+        if (in_array($job->type, ['probe', 'fetch_link', 'transcribe'], true) && $job->project_id) {
+            $project = $job->project()->first();
+            if ($project && ($project->recipe['status'] ?? null) === 'waiting') {
+                app(ExpressBuilder::class)->maybeRun($project);
+            }
+        }
     }
 
     private function probe(StudioJob $job, array $r, array $files): array

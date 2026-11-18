@@ -14,7 +14,7 @@ import { checkProps } from '../../../motion/src/templates/registry.js';
 
 type Aspect = '9:16' | '1:1' | '16:9';
 type EdlLike = {
-  aspect: Aspect; loudness?: number;
+  aspect: Aspect; loudness?: number; grade?: string | null;
   main: { type: string; template?: string; version?: number; props?: unknown; transition_in?: { template: string } | null }[];
   overlays: { template: string; version?: number; props?: unknown }[];
   captions?: { enabled?: boolean; template: string; version?: number; props?: unknown };
@@ -125,13 +125,20 @@ export async function renderProject(ctx: JobContext): Promise<JobOutput> {
       const kind = kindOf(a);
       let file: string;
       if (kind === 'video') {
+        const grade = edl.grade && edl.grade !== 'none' ? edl.grade : null;
+        const sha = (a.sha256 ?? 'x').slice(0, 16);
         if (!final && a.proxy_url) {
-          file = await cachedInput(a.id, a.sha256, a.proxy_url, '.mp4', 'proxy');
+          const proxy = await cachedInput(a.id, a.sha256, a.proxy_url, '.mp4', 'proxy');
+          file = proxy;
+          if (grade) {
+            file = path.join(config.cacheDir, 'inputs', `${a.id}-${sha}-proxy-${grade}.mp4`);
+            if (!existsSync(file)) await tool(['conform', proxy, file, '--short', '540', '--crf', '23', '--grade', grade]);
+          }
         } else {
           if (!a.url) throw new Permanent(`"${a.original_name}" is no longer on the server.`);
           const src = await cachedInput(a.id, a.sha256, a.url, extOf(a.original_name, a.mime));
-          file = path.join(config.cacheDir, 'inputs', `${a.id}-${(a.sha256 ?? 'x').slice(0, 16)}-conform1080.mp4`);
-          if (!existsSync(file)) await tool(['conform', src, file, '--short', '1080']);
+          file = path.join(config.cacheDir, 'inputs', `${a.id}-${sha}-conform1080${grade ? `-${grade}` : ''}.mp4`);
+          if (!existsSync(file)) await tool(['conform', src, file, '--short', '1080', ...(grade ? ['--grade', grade] : [])]);
         }
       } else {
         if (!a.url) throw new Permanent(`"${a.original_name}" is no longer on the server.`);

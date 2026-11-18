@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # faster-whisper in a venv (model downloads on first transcription and is cached in the volume).
-RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir faster-whisper==1.1.1 yt-dlp
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir faster-whisper==1.1.1 requests numpy yt-dlp
 ENV PATH="/opt/venv/bin:$PATH" PYTHON=/opt/venv/bin/python HF_HOME=/var/cache/clippipeline-render/hf
 
 WORKDIR /app

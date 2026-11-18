@@ -47,6 +47,9 @@ class Edl
             $p.'theme.bg' => ['required', $hex],
             $p.'theme.text' => ['required', $hex],
             $p.'theme.font' => ['nullable', 'string', 'max:60'],
+            $p.'theme.display' => ['nullable', 'string', 'max:60'],
+            $p.'grade' => ['nullable', 'in:none,vice-night,warm,punch'],
+            $p.'sfx' => ['nullable', 'boolean'],
             $p.'fit' => ['required', 'in:blur,crop,black'],
             $p.'main' => ['present', 'array', 'max:300'],
             $p.'main.*.id' => ['required', 'string', 'max:40', 'distinct'],
@@ -79,7 +82,8 @@ class Edl
             $p.'captions.props' => ['nullable', 'array'],
             $p.'captions.fixes' => ['nullable', 'array'],
             $p.'music' => ['present', 'array', 'max:10'],
-            $p.'music.*.asset_id' => ['required', 'integer'],
+            $p.'music.*.asset_id' => ['required_without:'.$p.'music.*.library', 'nullable', 'integer'],
+            $p.'music.*.library' => ['nullable', 'string', 'max:40', 'regex:/^[a-z0-9-]+$/'],
             $p.'music.*.start' => ['nullable', 'numeric', 'min:0'],
             $p.'music.*.end' => ['nullable', 'numeric', 'min:0'],
             $p.'music.*.volume' => ['nullable', 'numeric', 'between:0,1'],
@@ -108,7 +112,9 @@ class Edl
             $ids = array_merge($ids, self::propAssetIds($o['props'] ?? []));
         }
         foreach ($edl['music'] ?? [] as $m) {
-            $ids[] = (int) $m['asset_id'];
+            if (! empty($m['asset_id'])) {
+                $ids[] = (int) $m['asset_id'];
+            }
         }
 
         return array_values(array_unique(array_filter($ids)));

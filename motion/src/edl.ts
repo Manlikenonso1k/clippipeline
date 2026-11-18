@@ -18,12 +18,17 @@ export type Edl = {
   version: 2;
   aspect: Aspect;
   fps: number;
-  theme: { accent: string; accent2?: string | null; bg: string; text: string; font?: string | null };
+  theme: { accent: string; accent2?: string | null; bg: string; text: string; font?: string | null; display?: string | null };
+  /** Colour grade applied by the worker when it conforms clips (STUDIO express styles). */
+  grade?: 'none' | 'vice-night' | 'warm' | 'punch' | null;
+  /** Add sound effects on graphic entrances and transitions. */
+  sfx?: boolean;
   fit: 'blur' | 'crop' | 'black';
   main: EdlSegment[];
   overlays: EdlOverlay[];
   captions: { enabled: boolean; template: string; version?: number; props?: Record<string, unknown>; fixes?: Record<string, string> };
-  music: { asset_id: number; start?: number; end?: number | null; volume?: number; duck?: boolean; fade_in?: number; fade_out?: number }[];
+  /** A track is either the user's own asset or a built-in library track (motion/public/music/<library>.mp3). */
+  music: { asset_id?: number | null; library?: string | null; start?: number; end?: number | null; volume?: number; duck?: boolean; fade_in?: number; fade_out?: number }[];
   loudness: number;
 };
 

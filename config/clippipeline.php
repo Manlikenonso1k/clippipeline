@@ -73,6 +73,8 @@ return [
             'proxy_idle_days' => 30,
         ],
         'default_fillers' => ['um', 'uh', 'er', 'ehm', 'hmm'],
+        // YouTube Data API key (an API key, not OAuth) for studio:trends-refresh.
+        'youtube_api_key' => env('STUDIO_YOUTUBE_API_KEY'),
     ],
     // --- end agent:studio ---
 

@@ -32,7 +32,8 @@ export const theme = {
 } as const;
 
 /** Project theme from the EDL (CONTRACT §17). */
-export type ProjectTheme = { accent: string; accent2?: string | null; bg: string; text: string; font?: string | null };
+/** `display` is the headline font (e.g. Anton); `font` the body font. */
+export type ProjectTheme = { accent: string; accent2?: string | null; bg: string; text: string; font?: string | null; display?: string | null };
 
 export const DEFAULT_PROJECT_THEME: ProjectTheme = {
   accent: theme.colors.primary,
@@ -40,6 +41,7 @@ export const DEFAULT_PROJECT_THEME: ProjectTheme = {
   bg: theme.colors.bg,
   text: theme.colors.text,
   font: 'Inter',
+  display: 'Inter',
 };
 
 /** Hex colour with alpha (0..1). */

@@ -51,6 +51,24 @@ import { Template as zoomBlurTemplate, presentation as zoomBlurPresentation } fr
 import { meta as flashMeta } from './flash/meta';
 import { schema as flashSchema } from './flash/schema';
 import { Template as flashTemplate, presentation as flashPresentation } from './flash/Template';
+import { meta as hookHeadlineMeta } from './hook-headline/meta';
+import { schema as hookHeadlineSchema } from './hook-headline/schema';
+import { Template as hookHeadlineTemplate } from './hook-headline/Template';
+import { meta as popHeadlineMeta } from './pop-headline/meta';
+import { schema as popHeadlineSchema } from './pop-headline/schema';
+import { Template as popHeadlineTemplate } from './pop-headline/Template';
+import { meta as moneyCounterMeta } from './money-counter/meta';
+import { schema as moneyCounterSchema } from './money-counter/schema';
+import { Template as moneyCounterTemplate } from './money-counter/Template';
+import { meta as featurePillsMeta } from './feature-pills/meta';
+import { schema as featurePillsSchema } from './feature-pills/schema';
+import { Template as featurePillsTemplate } from './feature-pills/Template';
+import { meta as captionsBoldMeta } from './captions-bold/meta';
+import { schema as captionsBoldSchema } from './captions-bold/schema';
+import { Template as captionsBoldTemplate } from './captions-bold/Template';
+import { meta as neonOutroMeta } from './neon-outro/meta';
+import { schema as neonOutroSchema } from './neon-outro/schema';
+import { Template as neonOutroTemplate } from './neon-outro/Template';
 
 export const TEMPLATES: TemplateDef[] = [
   { meta: kineticTitleMeta, schema: kineticTitleSchema, Component: kineticTitleTemplate as TemplateDef['Component'] },
@@ -70,6 +88,12 @@ export const TEMPLATES: TemplateDef[] = [
   { meta: swipeMeta, schema: swipeSchema, Component: swipeTemplate as TemplateDef['Component'], presentation: swipePresentation as TemplateDef['presentation'] },
   { meta: zoomBlurMeta, schema: zoomBlurSchema, Component: zoomBlurTemplate as TemplateDef['Component'], presentation: zoomBlurPresentation as TemplateDef['presentation'] },
   { meta: flashMeta, schema: flashSchema, Component: flashTemplate as TemplateDef['Component'], presentation: flashPresentation as TemplateDef['presentation'] },
+  { meta: hookHeadlineMeta, schema: hookHeadlineSchema, Component: hookHeadlineTemplate as TemplateDef['Component'] },
+  { meta: popHeadlineMeta, schema: popHeadlineSchema, Component: popHeadlineTemplate as TemplateDef['Component'] },
+  { meta: moneyCounterMeta, schema: moneyCounterSchema, Component: moneyCounterTemplate as TemplateDef['Component'] },
+  { meta: featurePillsMeta, schema: featurePillsSchema, Component: featurePillsTemplate as TemplateDef['Component'] },
+  { meta: captionsBoldMeta, schema: captionsBoldSchema, Component: captionsBoldTemplate as TemplateDef['Component'] },
+  { meta: neonOutroMeta, schema: neonOutroSchema, Component: neonOutroTemplate as TemplateDef['Component'] },
 ];
 
 const BY_KEY = new Map(TEMPLATES.map((t) => [`${t.meta.slug}@${t.meta.version}`, t]));

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-17",
+  "generated_at": "2026-11-18",
   "templates": [
     {
       "slug": "kinetic-title",
@@ -1035,6 +1035,420 @@
       },
       "defaultProps": {
         "color": ""
+      }
+    },
+    {
+      "slug": "hook-headline",
+      "version": 1,
+      "name": "Hook headline",
+      "categories": [
+        "Kinetic type"
+      ],
+      "kind": "overlay",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 3.5,
+      "minDuration": 1.5,
+      "maxDuration": 8,
+      "credit": null,
+      "isActive": true,
+      "sort": 18,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "title": "Big title",
+            "default": "GTA 6",
+            "maxLength": 24,
+            "type": "string"
+          },
+          "kicker": {
+            "title": "Line under it",
+            "default": "is going to make",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "punch": {
+            "title": "Punch word",
+            "default": "Millionaires",
+            "maxLength": 24,
+            "type": "string"
+          },
+          "punch_at": {
+            "title": "Punch appears at (s)",
+            "default": 1.1,
+            "minimum": 0,
+            "maximum": 10,
+            "type": "number"
+          },
+          "position": {
+            "title": "Position",
+            "default": "top",
+            "enum": [
+              "top",
+              "center"
+            ],
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "title": "GTA 6",
+        "kicker": "is going to make",
+        "punch": "Millionaires",
+        "punch_at": 1.1,
+        "position": "top",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "pop-headline",
+      "version": 1,
+      "name": "Pop headline",
+      "categories": [
+        "Kinetic type"
+      ],
+      "kind": "overlay",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 1.8,
+      "minDuration": 0.8,
+      "maxDuration": 5,
+      "credit": null,
+      "isActive": true,
+      "sort": 19,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "title": "Text",
+            "default": "Get your bag",
+            "maxLength": 28,
+            "type": "string"
+          },
+          "highlight": {
+            "title": "Highlighted word",
+            "default": "bag",
+            "maxLength": 16,
+            "type": "string"
+          },
+          "style": {
+            "title": "Style",
+            "default": "box",
+            "enum": [
+              "box",
+              "gradient",
+              "echo",
+              "slam"
+            ],
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "default": "top",
+            "enum": [
+              "top",
+              "center"
+            ],
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "text": "Get your bag",
+        "highlight": "bag",
+        "style": "box",
+        "position": "top",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "money-counter",
+      "version": 1,
+      "name": "Money counter",
+      "categories": [
+        "Charts"
+      ],
+      "kind": "overlay",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 2.5,
+      "minDuration": 1.2,
+      "maxDuration": 6,
+      "credit": null,
+      "isActive": true,
+      "sort": 20,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "title": "Amount",
+            "default": 1000000,
+            "minimum": 1,
+            "maximum": 1000000000,
+            "type": "number"
+          },
+          "prefix": {
+            "title": "Currency",
+            "default": "$",
+            "maxLength": 4,
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "default": "",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "value": 1000000,
+        "prefix": "$",
+        "label": "",
+        "accent": ""
+      }
+    },
+    {
+      "slug": "feature-pills",
+      "version": 1,
+      "name": "Feature pills",
+      "categories": [
+        "Product UI",
+        "Shapes"
+      ],
+      "kind": "overlay",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 3.5,
+      "minDuration": 1.5,
+      "maxDuration": 10,
+      "credit": null,
+      "isActive": true,
+      "sort": 21,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "title": "Title",
+            "default": "Upload once",
+            "maxLength": 28,
+            "type": "string"
+          },
+          "items": {
+            "title": "Pills",
+            "default": [
+              "Edit",
+              "Clip",
+              "Motion graphics",
+              "Post everywhere",
+              "Track analytics"
+            ],
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 22
+            }
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "title": "Upload once",
+        "items": [
+          "Edit",
+          "Clip",
+          "Motion graphics",
+          "Post everywhere",
+          "Track analytics"
+        ],
+        "accent": ""
+      }
+    },
+    {
+      "slug": "captions-bold",
+      "version": 1,
+      "name": "Bold captions",
+      "categories": [
+        "Kinetic type"
+      ],
+      "kind": "captions",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 1,
+      "maxDuration": 600,
+      "credit": null,
+      "isActive": true,
+      "sort": 22,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "active_color": {
+            "title": "Active word colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "default": "l",
+            "enum": [
+              "m",
+              "l",
+              "xl"
+            ],
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "default": "low",
+            "enum": [
+              "low",
+              "middle"
+            ],
+            "type": "string"
+          },
+          "max_words": {
+            "title": "Words per line",
+            "default": 3,
+            "minimum": 1,
+            "maximum": 4,
+            "type": "number"
+          }
+        }
+      },
+      "defaultProps": {
+        "active_color": "",
+        "size": "l",
+        "position": "low",
+        "max_words": 3
+      }
+    },
+    {
+      "slug": "neon-outro",
+      "version": 1,
+      "name": "Neon outro",
+      "categories": [
+        "Shapes",
+        "Product UI"
+      ],
+      "kind": "segment",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "defaultDuration": 4,
+      "minDuration": 2.5,
+      "maxDuration": 10,
+      "credit": null,
+      "isActive": true,
+      "sort": 23,
+      "propsSchema": {
+        "type": "object",
+        "properties": {
+          "logo": {
+            "title": "Logo",
+            "format": "asset:image",
+            "default": null,
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "default": "Your brand",
+            "maxLength": 24,
+            "type": "string"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "default": "Follow for more",
+            "maxLength": 24,
+            "type": "string"
+          },
+          "items": {
+            "title": "Icons row labels",
+            "default": [],
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 12
+            }
+          },
+          "show_chart": {
+            "title": "Growth chart",
+            "default": true,
+            "type": "boolean"
+          },
+          "cta": {
+            "title": "Button",
+            "default": "Follow now",
+            "maxLength": 24,
+            "type": "string"
+          },
+          "note": {
+            "title": "Small line",
+            "default": "",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "accent": {
+            "title": "Accent colour",
+            "format": "color",
+            "default": "",
+            "type": "string"
+          }
+        }
+      },
+      "defaultProps": {
+        "logo": null,
+        "title": "Your brand",
+        "subtitle": "Follow for more",
+        "items": [],
+        "show_chart": true,
+        "cta": "Follow now",
+        "note": "",
+        "accent": ""
       }
     }
   ]

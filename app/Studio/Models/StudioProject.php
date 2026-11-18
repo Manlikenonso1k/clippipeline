@@ -19,6 +19,7 @@ class StudioProject extends Model
             'edl' => 'array',
             'edl_previous' => 'array',
             'style_profile' => 'array',
+            'recipe' => 'array',
             'revision' => 'integer',
             'fps' => 'integer',
             'last_opened_at' => 'datetime',

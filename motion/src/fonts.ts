@@ -9,6 +9,7 @@ const FACES = [
   { family: 'Inter', weight: '800', file: 'fonts/Inter-800.woff2' },
   { family: 'Inter', weight: '900', file: 'fonts/Inter-900.woff2' },
   { family: 'JetBrains Mono', weight: '500', file: 'fonts/JetBrainsMono-500.woff2' },
+  { family: 'Anton', weight: '400', file: 'fonts/Anton-400.woff2' },
 ];
 
 let started = false;

@@ -43,4 +43,5 @@ Schedule::command('accounts:retention')->dailyAt('03:30')->withoutOverlapping();
 Schedule::command('studio:requeue-stale')->everyMinute()->withoutOverlapping();
 Schedule::command('studio:prune')->dailyAt('04:10')->withoutOverlapping();
 Schedule::command('studio:templates-sync')->dailyAt('04:40')->withoutOverlapping();
+Schedule::command('studio:trends-refresh')->everySixHours()->withoutOverlapping();
 // --- end agent:studio ---

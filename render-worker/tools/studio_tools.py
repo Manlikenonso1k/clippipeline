@@ -28,6 +28,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vkit  # noqa: E402
 
+# Colour-grade presets for style packs (EDL "grade"). Shadow lifts help phone footage shot against a window.
+GRADES = {
+    "none": "",
+    "vice-night": "curves=all='0/0.02 0.12/0.2 0.3/0.42 0.6/0.68 1/0.86',eq=saturation=1.18:contrast=1.04,"
+                  "colorbalance=rh=0.06:bh=0.12:gh=-0.05:rm=0.02:bm=0.03,unsharp=5:5:0.5",
+    "warm": "curves=all='0/0.02 0.15/0.2 0.5/0.55 1/0.96',eq=contrast=1.04:saturation=1.1,"
+            "colorbalance=rm=0.04:gm=0.01:bm=-0.04:rh=0.02:bh=-0.03",
+    "punch": "curves=all='0/0 0.25/0.22 0.5/0.52 0.75/0.8 1/1',eq=contrast=1.08:saturation=1.15,unsharp=5:5:0.6",
+}
+
 X264_FAST = ["-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
 
 
@@ -262,7 +272,7 @@ def cmd_master(args) -> None:
         return
     af = (f"loudnorm=I={args.lufs}:TP={args.tp - 0.5}:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
           f"measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,"
-          f"alimiter=limit={10 ** ((args.tp - 0.3) / 20):.4f}:level=disabled,aresample=48000")
+          f"alimiter=limit={10 ** ((args.tp - 0.7) / 20):.4f}:level=disabled,aresample=48000")  # AAC adds ~0.3-0.5 dB of inter-sample peak
     ff(["-i", src, "-c:v", "copy", "-af", af, "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", dest])
     out({"normalized": True, "input_lufs": float(m["input_i"])})
 
@@ -324,8 +334,10 @@ def cmd_conform(args) -> None:
     short = min(args.short, min(w, h))
     scale = f"scale={even(short * w / h)}:{short}" if w >= h else f"scale={short}:{even(short * h / w)}"
     pre = (vkit.TONEMAP + ",") if v.get("color_transfer") in vkit.HDR_TRANSFERS else ""
+    grade = GRADES.get(args.grade or "none", "")
+    post = f",{grade}" if grade else ""
     audio = ["-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2"] if a is not None else ["-an"]
-    ff(["-i", src, "-vf", f"{pre}{scale},fps=30", *X264_FAST, "-crf", str(args.crf), "-g", "30", *audio, dest])
+    ff(["-i", src, "-vf", f"{pre}{scale},fps=30{post}", *X264_FAST, "-crf", str(args.crf), "-g", "30", *audio, dest])
     out({"width": even(short * w / h) if w >= h else short, "height": short if w >= h else even(short * h / w)})
 
 
@@ -362,7 +374,8 @@ def main() -> None:
     p = sub.add_parser("frames"); p.add_argument("video"); p.add_argument("dest"); p.add_argument("--at", required=True)
     p.set_defaults(fn=cmd_frames)
     p = sub.add_parser("conform"); p.add_argument("src"); p.add_argument("dest"); p.add_argument("--short", type=int, default=1080)
-    p.add_argument("--crf", type=int, default=17); p.set_defaults(fn=cmd_conform)
+    p.add_argument("--crf", type=int, default=17); p.add_argument("--grade", default="none", choices=sorted(GRADES))
+    p.set_defaults(fn=cmd_conform)
     p = sub.add_parser("loop"); p.add_argument("src"); p.add_argument("dest"); p.add_argument("poster"); p.set_defaults(fn=cmd_loop)
     args = ap.parse_args()
     try:
