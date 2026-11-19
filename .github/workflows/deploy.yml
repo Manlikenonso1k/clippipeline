@@ -32,6 +32,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Check secrets are set
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
