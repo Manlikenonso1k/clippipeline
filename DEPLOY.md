@@ -195,3 +195,16 @@ Then `php artisan config:clear`. Test it from the app (Forgot password?) or the 
 
 Set a password for someone from the server (asked hidden, never echoed or logged):
 `php artisan app:set-password you@example.com` (add `--create` to make the account).
+
+## Studio render worker on a VPS (Hostinger KVM 2)
+
+Shared hosting cannot run the worker (ffmpeg, Whisper, headless Chrome). Run it on a VPS:
+
+1. On the shared server: `/opt/alt/php83/usr/bin/php artisan studio:worker-token` and copy the token.
+2. On the VPS as root:
+   `curl -fsSL https://raw.githubusercontent.com/Manlikenonso1k/clippipeline/main/render-worker/setup-vps.sh -o setup-vps.sh && bash setup-vps.sh`
+   (installs Docker, adds swap, clones to /opt/clippipeline, asks for the token, builds and starts the worker).
+3. Optional CI/CD: add `WORKER_SSH_HOST` and `WORKER_SSH_PRIVATE_KEY` (and `WORKER_SSH_USER`/`WORKER_SSH_PORT`
+   if not root/22) to the repo's Actions secrets; every push to main then updates the worker too.
+
+Logs: `docker logs -f clippipeline-render`. Restart: `docker restart clippipeline-render`.

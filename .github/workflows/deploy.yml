@@ -29,7 +29,7 @@ jobs:
         run: php artisan test
 
   deploy:
-    needs: test
+    needs: [test, worker-image]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,3 +62,38 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
             "APP_DIR='${APP_DIR}' bash -s" < deploy/deploy.sh
+
+  # The Studio render worker image must build before anything deploys.
+  worker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the render worker image
+        run: docker build -f render-worker/Dockerfile -t clippipeline-render .
+      - name: Worker starts and reads its settings
+        run: |
+          docker run --rm -e CLIPPIPELINE_API_URL=https://example.invalid/api -e "CLIPPIPELINE_WORKER_TOKEN='1|test'" \
+            --entrypoint sh clippipeline-render -c 'ffmpeg -version | head -1 && /opt/venv/bin/python -c "import faster_whisper; print(\"faster-whisper ok\")" && npx tsx -e "import(\"./src/config.ts\").then(m => console.log(\"token parsed:\", m.config.token === \"1|test\"))"'
+
+  # Updates the render worker VPS (Hostinger KVM 2). Skipped until WORKER_SSH_HOST and
+  # WORKER_SSH_PRIVATE_KEY are set; run render-worker/setup-vps.sh by hand once first.
+  worker:
+    needs: [test, worker-image, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update the worker VPS
+        env:
+          HOST: ${{ secrets.WORKER_SSH_HOST }}
+          PORT: ${{ secrets.WORKER_SSH_PORT || '22' }}
+          USER: ${{ secrets.WORKER_SSH_USER || 'root' }}
+          KEY: ${{ secrets.WORKER_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$KEY" ]; then
+            echo "::notice::Worker VPS secrets not set: skipping the worker update."
+            exit 0
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/worker_key && chmod 600 ~/.ssh/worker_key
+          ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/worker_key -p "$PORT" "$USER@$HOST" \
+            'git -C /opt/clippipeline pull --ff-only origin main && bash /opt/clippipeline/render-worker/setup-vps.sh'

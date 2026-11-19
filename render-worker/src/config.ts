@@ -5,6 +5,12 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+/** Docker's --env-file keeps quotes literally (KEY='1|abc'), dotenv strips them: accept both. */
+for (const [k, v] of Object.entries(process.env)) {
+  const m = v?.trim().match(/^(['"])(.*)\1$/s);
+  if (m) process.env[k] = m[2];
+}
+
 function required(name: string): string {
   const v = process.env[name]?.trim();
   if (!v) throw new Error(`Set ${name} in render-worker/.env (see .env.example).`);

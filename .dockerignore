@@ -1,0 +1,8 @@
+# Only the render worker image is built with Docker; it needs motion/ and render-worker/.
+*
+!motion
+!render-worker
+**/node_modules
+**/__pycache__
+render-worker/.env
+motion/out
