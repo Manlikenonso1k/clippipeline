@@ -24,8 +24,8 @@ RUN cd render-worker && npm install --no-audit --no-fund
 COPY motion motion
 COPY render-worker render-worker
 
-# Download Remotion's browser at build time.
-RUN cd render-worker && npx remotion browser ensure || true
+# Download Remotion's Chrome Headless Shell at build time (fails the build if this CPU type has none).
+RUN cd render-worker && node -e "import('@remotion/renderer').then((r) => r.ensureBrowser())"
 
 ENV WORKER_CACHE_DIR=/var/cache/clippipeline-render NODE_ENV=production
 VOLUME /var/cache/clippipeline-render

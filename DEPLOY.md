@@ -205,6 +205,6 @@ Shared hosting cannot run the worker (ffmpeg, Whisper, headless Chrome). Run it 
    `curl -fsSL https://raw.githubusercontent.com/Manlikenonso1k/clippipeline/main/render-worker/setup-vps.sh -o setup-vps.sh && bash setup-vps.sh`
    (installs Docker, adds swap, clones to /opt/clippipeline, asks for the token, builds and starts the worker).
 3. Optional CI/CD: add `WORKER_SSH_HOST` and `WORKER_SSH_PRIVATE_KEY` (and `WORKER_SSH_USER`/`WORKER_SSH_PORT`
-   if not root/22) to the repo's Actions secrets; every push to main then updates the worker too.
+   if not ubuntu/22; the user needs passwordless sudo, as on Oracle Cloud Ubuntu) to the repo's Actions secrets; every push to main then updates the worker too.
 
 Logs: `docker logs -f clippipeline-render`. Restart: `docker restart clippipeline-render`.

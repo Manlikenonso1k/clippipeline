@@ -64,12 +64,20 @@ jobs:
             "APP_DIR='${APP_DIR}' bash -s" < deploy/deploy.sh
 
   # The Studio render worker image must build before anything deploys.
+  # Built on Intel/AMD and on Arm (Oracle Cloud Always Free Ampere servers are Arm).
   worker-image:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - name: Build the render worker image
         run: docker build -f render-worker/Dockerfile -t clippipeline-render .
+      - name: Headless Chrome launches
+        run: |
+          docker run --rm --shm-size=1g --entrypoint node clippipeline-render -e \
+            "import('@remotion/renderer').then(async (r) => { const b = await r.openBrowser('chrome'); console.log('chrome ok on', process.arch); await b.close({ silent: true }); })"
       - name: Worker starts and reads its settings
         run: |
           docker run --rm -e CLIPPIPELINE_API_URL=https://example.invalid/api -e "CLIPPIPELINE_WORKER_TOKEN='1|test'" \
@@ -85,7 +93,7 @@ jobs:
         env:
           HOST: ${{ secrets.WORKER_SSH_HOST }}
           PORT: ${{ secrets.WORKER_SSH_PORT || '22' }}
-          USER: ${{ secrets.WORKER_SSH_USER || 'root' }}
+          USER: ${{ secrets.WORKER_SSH_USER || 'ubuntu' }}
           KEY: ${{ secrets.WORKER_SSH_PRIVATE_KEY }}
         run: |
           if [ -z "$HOST" ] || [ -z "$KEY" ]; then
@@ -96,4 +104,4 @@ jobs:
           printf '%s\n' "$KEY" > ~/.ssh/worker_key && chmod 600 ~/.ssh/worker_key
           ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
           ssh -i ~/.ssh/worker_key -p "$PORT" "$USER@$HOST" \
-            'git -C /opt/clippipeline pull --ff-only origin main && bash /opt/clippipeline/render-worker/setup-vps.sh'
+            'sudo bash -c "git -C /opt/clippipeline pull --ff-only origin main && bash /opt/clippipeline/render-worker/setup-vps.sh"'
