@@ -62,23 +62,38 @@ echo "    found"
 
 say "Creating the server (Always Free: up to 4 OCPU / 24 GB)"
 ADS=$(oci iam availability-domain list -c "$C" --query 'data[].name' --raw-output | tr -d '[]", ' | grep -v '^$')
-ID=""
-for SIZE in "4 24" "2 12" "1 6"; do
-  set -- $SIZE
-  for AD in $ADS; do
-    echo "    trying $1 OCPU / $2 GB in $AD ..."
-    OUT=$(oci compute instance launch -c "$C" --availability-domain "$AD" --display-name "$NAME" \
-          --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$1,\"memoryInGBs\":$2}" \
-          --image-id "$IMG" --subnet-id "$SUBNET" --assign-public-ip true \
-          --ssh-authorized-keys-file "$KEY.pub" --wait-for-state RUNNING \
-          --query 'data.id' --raw-output 2>&1)
-    # Oracle prints "Action completed. Waiting..." before the id, so look for the id anywhere.
-    if echo "$OUT" | grep -q 'ocid1.instance'; then ID=$(echo "$OUT" | grep -o 'ocid1.instance[^ "]*' | head -1); break 2; fi
-    if echo "$OUT" | grep -qi "capacity"; then echo "    out of capacity there"; continue; fi
-    echo "$OUT" | tail -5; echo "Stopped: the error above is not a capacity problem."; exit 1
+# RETRY=1 bash oc.sh  -> keep trying every 5 minutes (free Arm capacity frees up during the day).
+RETRY="${RETRY:-0}"
+ID=""; LAST=""; ROUND=0
+while :; do
+  ROUND=$((ROUND + 1))
+  for SIZE in "4 24" "2 12" "1 6"; do
+    set -- $SIZE
+    for AD in $ADS; do
+      echo "    trying $1 OCPU / $2 GB in $AD ..."
+      OUT=$(oci compute instance launch -c "$C" --availability-domain "$AD" --display-name "$NAME" \
+            --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$1,\"memoryInGBs\":$2}" \
+            --image-id "$IMG" --subnet-id "$SUBNET" --assign-public-ip true \
+            --ssh-authorized-keys-file "$KEY.pub" --wait-for-state RUNNING \
+            --query 'data.id' --raw-output 2>&1)
+      # Oracle prints "Action completed. Waiting..." before the id, so look for the id anywhere.
+      if echo "$OUT" | grep -q 'ocid1.instance'; then ID=$(echo "$OUT" | grep -o 'ocid1.instance[^ "]*' | head -1); break 3; fi
+      MSG=$(echo "$OUT" | grep -E '"(code|message)"' | sed 's/^ *//' | tr '\n' ' ')
+      if echo "$OUT" | grep -qi "capacity"; then echo "    out of capacity there"
+      else echo "    skipped: ${MSG:-$(echo "$OUT" | tail -3 | tr '\n' ' ')}"; LAST="$MSG"; fi
+      if echo "$OUT" | grep -qiE 'LimitExceeded|QuotaExceeded|NotAuthorized'; then
+        echo; echo "Stopped: $MSG"; echo "(A limit or permission problem, not capacity. Send this message.)"; exit 1
+      fi
+    done
   done
+  [ "$RETRY" = "1" ] || break
+  echo "    round $ROUND: no free capacity yet, trying again in 5 minutes (Ctrl+C to stop)"; sleep 300
 done
-[ -n "$ID" ] || { echo; echo "Oracle has no free Arm capacity right now in any zone. Try again later (often works within hours)."; exit 1; }
+if [ -z "$ID" ]; then
+  echo; echo "No free Arm capacity in any zone right now.${LAST:+ Last other error: $LAST}"
+  echo "Run it again later, or keep it retrying every 5 minutes with:  RETRY=1 bash oc.sh"
+  exit 1
+fi
 
 IP=$(oci compute instance list-vnics --instance-id "$ID" --query 'data[0]."public-ip"' --raw-output)
 say "Done. Server $NAME is running at $IP"
