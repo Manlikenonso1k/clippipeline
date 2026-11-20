@@ -72,7 +72,8 @@ for SIZE in "4 24" "2 12" "1 6"; do
           --image-id "$IMG" --subnet-id "$SUBNET" --assign-public-ip true \
           --ssh-authorized-keys-file "$KEY.pub" --wait-for-state RUNNING \
           --query 'data.id' --raw-output 2>&1)
-    if [[ "$OUT" == ocid1.instance* ]]; then ID=$(echo "$OUT" | grep -o 'ocid1.instance[^ ]*' | head -1); break 2; fi
+    # Oracle prints "Action completed. Waiting..." before the id, so look for the id anywhere.
+    if echo "$OUT" | grep -q 'ocid1.instance'; then ID=$(echo "$OUT" | grep -o 'ocid1.instance[^ "]*' | head -1); break 2; fi
     if echo "$OUT" | grep -qi "capacity"; then echo "    out of capacity there"; continue; fi
     echo "$OUT" | tail -5; echo "Stopped: the error above is not a capacity problem."; exit 1
   done
