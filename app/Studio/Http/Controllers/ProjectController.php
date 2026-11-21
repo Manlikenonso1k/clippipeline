@@ -199,7 +199,9 @@ class ProjectController extends Controller
         }
         $notReady = $assets->first(fn ($a) => $a->status !== 'ready' || ! $a->path);
         if ($notReady) {
-            throw ValidationException::withMessages(['project' => "\"{$notReady->original_name}\" is still processing. Try again when it is ready."]);
+            throw ValidationException::withMessages(['project' => $notReady->status === 'failed' && $notReady->error
+                ? "\"{$notReady->original_name}\": {$notReady->error}"
+                : "\"{$notReady->original_name}\" is still processing. Try again when it is ready."]);
         }
 
         $existing = $project->jobs()->where('type', $type)->whereIn('status', [StudioJob::STATUS_QUEUED, StudioJob::STATUS_RUNNING])

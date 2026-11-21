@@ -4,42 +4,25 @@ namespace App\Studio\Console;
 
 use App\Studio\Models\StudioAsset;
 use App\Studio\Models\StudioJob;
-use App\Studio\Models\StudioRender;
+use App\Studio\Services\StudioCleanup;
 use App\Studio\Services\StudioFiles;
 use Illuminate\Console\Command;
 
-/** Retention (STUDIO_SPEC §3): preview renders 14 days, source proxies 30 days after last open. */
+/** Retention (config clippipeline.studio.retention): frees disk space without touching anything still in use. */
 class Prune extends Command
 {
-    protected $signature = 'studio:prune {--dry-run}';
+    protected $signature = 'studio:prune {--dry-run : Show what would be deleted and how much space it frees}';
 
-    protected $description = 'Delete old Studio preview renders, idle preview proxies and old finished jobs.';
+    protected $description = 'Delete replaced and old Studio renders, idle preview proxies, long-unused uploads and old finished jobs.';
 
-    public function handle(StudioFiles $files): int
+    public function handle(StudioCleanup $cleanup, StudioFiles $files): int
     {
         $dry = (bool) $this->option('dry-run');
-        $cfg = (array) config('clippipeline.studio.retention');
 
-        $renders = StudioRender::query()->where('quality', 'preview')->whereNull('post_id')
-            ->where('created_at', '<', now()->subDays((int) ($cfg['preview_render_days'] ?? 14)))->get();
-        foreach ($renders as $r) {
-            if (! $dry) {
-                $files->delete([$r->path, $r->poster_path]);
-                $r->project?->last_render_id === $r->id && $r->project->forceFill(['last_render_id' => null])->save();
-                $r->delete();
-            }
-        }
-
-        $idle = now()->subDays((int) ($cfg['proxy_idle_days'] ?? 30));
-        $assets = StudioAsset::query()->whereNotNull('preview_proxy_path')
-            ->whereHas('project', fn ($q) => $q->where(fn ($w) => $w->where('last_opened_at', '<', $idle)->orWhere(fn ($n) => $n->whereNull('last_opened_at')->where('updated_at', '<', $idle))))
-            ->get();
-        foreach ($assets as $a) {
-            if (! $dry) {
-                $files->delete([$a->preview_proxy_path, $a->thumbs_path]);
-                $a->forceFill(['preview_proxy_path' => null, 'thumbs_path' => null])->save();
-            }
-        }
+        $superseded = $cleanup->supersededRenders(null, $dry);
+        $previews = $cleanup->oldPreviews($dry);
+        $proxies = $cleanup->idleProxies($dry);
+        $sources = $cleanup->idleSources($dry);
 
         // Reference media is deleted after analysis; this catches any that failed half-way.
         $refs = StudioAsset::query()->where('role', 'reference')->whereNotNull('path')->where('updated_at', '<', now()->subDay())->get();
@@ -54,8 +37,14 @@ class Prune extends Command
             ->where('updated_at', '<', now()->subDays(30));
         $jobCount = $dry ? $jobs->count() : $jobs->delete();
 
-        $this->info(sprintf('%s%d preview render(s), %d proxy set(s), %d reference file(s), %d old job(s).',
-            $dry ? '[dry run] would delete ' : 'Deleted ', $renders->count(), $assets->count(), $refs->count(), $jobCount));
+        $mb = fn (int $b) => number_format($b / 1048576, 1).' MB';
+        $total = $superseded['bytes'] + $previews['bytes'] + $proxies['bytes'] + $sources['bytes'];
+        $this->info(sprintf(
+            '%s%d replaced render(s), %d old preview(s), %d proxy set(s), %d unused upload(s), %d reference file(s), %d old job(s). Space %s: %s.',
+            $dry ? '[dry run] would delete ' : 'Deleted ',
+            $superseded['count'], $previews['count'], $proxies['count'], $sources['count'], $refs->count(), $jobCount,
+            $dry ? 'to free' : 'freed', $mb($total),
+        ));
 
         return self::SUCCESS;
     }

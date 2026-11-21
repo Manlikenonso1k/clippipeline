@@ -56,6 +56,7 @@ class JobCompletion
             if (! empty($job->input['express']) && $job->project) {
                 app(ExpressBuilder::class)->setStatus($job->project, 'done', null, ['render_id' => $stored['render_id']]);
             }
+            app(StudioCleanup::class)->afterRender($job->project);
             $this->push($job, 'Your video is ready', ($job->project?->title ?: 'Studio project').' finished rendering. Tap to download or publish.', ['render_id' => $stored['render_id']]);
         }
         $this->continueExpress($job);

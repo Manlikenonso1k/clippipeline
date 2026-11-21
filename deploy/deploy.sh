@@ -24,5 +24,6 @@ echo "==> Now at $(git log --oneline -1)"
 "$PHP" artisan optimize:clear
 "$PHP" artisan optimize
 "$PHP" artisan queue:restart || true
+"$PHP" artisan studio:prune || true   # free disk: replaced/old renders, idle proxies, long-unused uploads
 
 echo "==> Deploy finished"

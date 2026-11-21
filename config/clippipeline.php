@@ -68,9 +68,12 @@ return [
             'pro' => ['studio_render_minutes' => 120, 'studio_ai_calls' => 300, 'studio_max_source_minutes' => 10],
             'agency' => ['studio_render_minutes' => 600, 'studio_ai_calls' => 2000, 'studio_max_source_minutes' => 30],
         ],
+        // Disk clean-up (studio:prune nightly, and replaced renders right after each render).
         'retention' => [
-            'preview_render_days' => 14,
-            'proxy_idle_days' => 30,
+            'superseded_render_hours' => (int) env('STUDIO_KEEP_REPLACED_RENDER_HOURS', 1),
+            'preview_render_days' => (int) env('STUDIO_KEEP_PREVIEW_DAYS', 3),
+            'proxy_idle_days' => (int) env('STUDIO_KEEP_PROXY_DAYS', 7),
+            'source_idle_days' => (int) env('STUDIO_KEEP_SOURCE_DAYS', 30), // 0 = keep uploads forever
         ],
         'default_fillers' => ['um', 'uh', 'er', 'ehm', 'hmm'],
         // YouTube Data API key (an API key, not OAuth) for studio:trends-refresh.

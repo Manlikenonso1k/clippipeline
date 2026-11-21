@@ -208,3 +208,11 @@ Shared hosting cannot run the worker (ffmpeg, Whisper, headless Chrome). Run it 
    if not ubuntu/22; the user needs passwordless sudo, as on Oracle Cloud Ubuntu) to the repo's Actions secrets; every push to main then updates the worker too.
 
 Logs: `docker logs -f clippipeline-render`. Restart: `docker restart clippipeline-render`.
+
+## Studio disk clean-up
+
+`studio:prune` runs nightly (04:10) and after every deploy; replaced renders are also removed right after each new
+render. Defaults (override in `.env`): replaced renders after 1 hour (`STUDIO_KEEP_REPLACED_RENDER_HOURS`), previews
+3 days (`STUDIO_KEEP_PREVIEW_DAYS`), preview proxies of idle projects 7 days (`STUDIO_KEEP_PROXY_DAYS`), original
+uploads of projects unused for 30 days (`STUDIO_KEEP_SOURCE_DAYS`, 0 = never). Renders attached to a post and the
+newest render of each project are always kept. See what it would free: `php artisan studio:prune --dry-run`.
