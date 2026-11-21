@@ -34,6 +34,26 @@ class StudioProjectApiTest extends StudioTestCase
         $this->patchJson("/api/studio/projects/{$p->id}", ['title' => 'Renamed'])->assertOk()->assertJsonPath('title', 'Renamed');
     }
 
+    public function test_patch_keeps_empty_template_props_as_empty_strings(): void
+    {
+        // Laravel's ConvertEmptyStringsToNull turned "" into null, and the worker's template check then failed with
+        // 'prop "kicker": expected string, received null'.
+        $p = $this->project();
+        $edl = $p->edl;
+        $edl['main'][] = ['id' => 's1', 'type' => 'template', 'template' => 'kinetic-title', 'version' => 1, 'duration' => 2.5,
+            'props' => ['title' => 'Owo', 'kicker' => '', 'subtitle' => '']];
+        $edl['overlays'][] = ['id' => 'o1', 'template' => 'stat-counter', 'version' => 1, 'anchor' => 's1', 'offset' => 0, 'duration' => 2,
+            'props' => ['value' => 10, 'prefix' => '', 'suffix' => '%', 'items' => ['a', '']]];
+
+        $this->patchJson("/api/studio/projects/{$p->id}", ['edl' => $edl, 'revision' => 1])->assertOk();
+
+        $saved = $p->fresh()->edl;
+        $this->assertSame('', $saved['main'][0]['props']['kicker']);
+        $this->assertSame('', $saved['main'][0]['props']['subtitle']);
+        $this->assertSame('', $saved['overlays'][0]['props']['prefix']);
+        $this->assertSame(['a', ''], $saved['overlays'][0]['props']['items']);
+    }
+
     public function test_patch_rejects_invalid_edl_and_foreign_assets(): void
     {
         $p = $this->project();

@@ -107,9 +107,25 @@ export function getTemplate(slug: string, version?: number | null): TemplateDef 
   return TEMPLATES.filter((t) => t.meta.slug === slug).sort((a, b) => b.meta.version - a.meta.version)[0];
 }
 
-/** PHP encodes an empty props object as []: treat any non-object as {}. */
+/**
+ * Undo two PHP/Laravel quirks before validating props:
+ * - an empty props object is encoded as [] → treat any non-object as {};
+ * - edits saved before the server stopped converting "" to null hold null props → drop null keys so the schema
+ *   default applies (every prop has one), and turn null list entries back into "".
+ */
 export function normalizeProps(props: unknown): Record<string, unknown> {
-  return props && typeof props === 'object' && !Array.isArray(props) ? (props as Record<string, unknown>) : {};
+  if (!props || typeof props !== 'object' || Array.isArray(props)) return {};
+  return dropNulls(props) as Record<string, unknown>;
+}
+
+function dropNulls(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map((x) => (x === null ? '' : dropNulls(x)));
+  if (v && typeof v === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) if (x !== null) out[k] = dropNulls(x);
+    return out;
+  }
+  return v;
 }
 
 export type PropsCheck = { ok: true; props: Record<string, unknown> } | { ok: false; error: string };

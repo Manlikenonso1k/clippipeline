@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'billing/webhook/*',
         ]);
+        // Studio saves edits (EDL) whose template props are often "" (an empty kicker, no prefix). Converting those to
+        // null broke renders: template schemas expect strings and only fill defaults for missing values, not null.
+        $middleware->convertEmptyStringsToNull(except: [
+            fn (Request $request) => $request->is('api/studio/*'),
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

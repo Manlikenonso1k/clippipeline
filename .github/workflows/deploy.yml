@@ -78,6 +78,8 @@ jobs:
         run: |
           docker run --rm --shm-size=1g --entrypoint node clippipeline-render -e \
             "import('@remotion/renderer').then(async (r) => { const b = await r.openBrowser('chrome'); console.log('chrome ok on', process.arch); await b.close({ silent: true }); })"
+      - name: Worker tests
+        run: docker run --rm --entrypoint npm clippipeline-render test
       - name: Audio mastering works with this image's ffmpeg
         run: |
           docker run --rm --entrypoint bash clippipeline-render -c '
