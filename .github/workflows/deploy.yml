@@ -78,6 +78,21 @@ jobs:
         run: |
           docker run --rm --shm-size=1g --entrypoint node clippipeline-render -e \
             "import('@remotion/renderer').then(async (r) => { const b = await r.openBrowser('chrome'); console.log('chrome ok on', process.arch); await b.close({ silent: true }); })"
+      - name: Audio mastering works with this image's ffmpeg
+        run: |
+          docker run --rm --entrypoint bash clippipeline-render -c '
+            set -e; cd /tmp; ffmpeg -version | head -1
+            for L in stereo mono; do
+              ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc=s=320x240:r=30:d=4 -f lavfi -i "sine=f=440:d=4" \
+                -ac $([ $L = mono ] && echo 1 || echo 2) -ar 48000 -c:v libx264 -pix_fmt yuv420p -c:a aac -b:a 192k raw_$L.mp4
+              echo "--- old command ($L input), for comparison:"
+              ffmpeg -hide_banner -loglevel error -y -i raw_$L.mp4 -c:v copy \
+                -af "loudnorm=I=-14:TP=-1.5:LRA=11,alimiter=limit=0.84:level=disabled,aresample=48000" \
+                -c:a aac -b:a 192k -ar 48000 old_$L.mp4 && echo "old: ok" || echo "old: FAILED"
+              echo "--- new master ($L input):"
+              python /app/render-worker/tools/studio_tools.py master raw_$L.mp4 out_$L.mp4 --lufs -14 --tp -1
+              ffprobe -v error -select_streams a -show_entries stream=channels,channel_layout,sample_rate -of csv=p=0 out_$L.mp4
+            done'
       - name: Worker starts and reads its settings
         run: |
           docker run --rm -e CLIPPIPELINE_API_URL=https://example.invalid/api -e "CLIPPIPELINE_WORKER_TOKEN='1|test'" \

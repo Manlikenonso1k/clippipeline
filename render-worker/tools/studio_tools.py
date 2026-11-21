@@ -272,8 +272,12 @@ def cmd_master(args) -> None:
         return
     af = (f"loudnorm=I={args.lufs}:TP={args.tp - 0.5}:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
           f"measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,"
-          f"alimiter=limit={10 ** ((args.tp - 0.7) / 20):.4f}:level=disabled,aresample=48000")  # AAC adds ~0.3-0.5 dB of inter-sample peak
-    ff(["-i", src, "-c:v", "copy", "-af", af, "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", dest])
+          f"alimiter=limit={10 ** ((args.tp - 0.7) / 20):.4f}:level=disabled,aresample=48000,"  # AAC adds ~0.3-0.5 dB of inter-sample peak
+          "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo")
+    # Pin the output format (stereo, 48 kHz, fltp): Debian's ffmpeg 5.1 cannot negotiate a channel layout for the AAC
+    # encoder on its own after loudnorm ("Cannot select channel layout ... format_out"), newer ffmpeg can.
+    ff(["-i", src, "-c:v", "copy", "-af", af, "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+        "-movflags", "+faststart", dest])
     out({"normalized": True, "input_lufs": float(m["input_i"])})
 
 
